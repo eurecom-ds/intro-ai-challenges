@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="148" viewBox="0 0 840 148" role="img" aria-labelledby="title description">
+  <title id="title">Upload the selected model</title>
+  <desc id="description">Upload 2 of 2: Upload the selected model. Run the selected configuration again, then upload its predictions using the name, surname and upload address from Upload 1.</desc>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="1" y="1" width="838" height="146" rx="14" fill="#0f2746" stroke="#234566"/>
+    <text x="22" y="30" font-size="11" font-weight="700" fill="#93c5fd" letter-spacing="1.1">UPLOAD 2 OF 2</text>
+    <text x="22" y="65" font-size="22" font-weight="700" fill="#f1f5f9">Upload the selected model</text>
+    <text x="22" y="94" font-size="16" font-weight="400" fill="#f1f5f9">Run the selected configuration again, then upload its predictions using the name, surname and</text>
+    <text x="22" y="118" font-size="16" font-weight="400" fill="#f1f5f9">upload address from Upload 1.</text>
+  </g>
+</svg>

@@ -28,5 +28,10 @@ the notebook checks their SHA-256 hashes before use. Data downloads reference
 the immutable `network-latency-v1` release tag. Publish a new version when the
 approved data changes, updating the tag reference and checksums together.
 
+Static banners, step labels and activity cards are SVG images in
+`network-latency/assets/`. Embed these panels with Markdown image links so
+their styling appears in Colab before any cells run. Keep descriptive image
+text alongside the SVG title and description when editing a panel.
+
 Rehearse the notebook and upload flow with disposable submissions before a
 release. The instructor performs a separate rehearsal in a fresh Colab session.

@@ -22,7 +22,7 @@
 #
 # [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/eurecom-ds/intro-ai-challenges/blob/main/network-latency/notebook.ipynb)
 #
-# <div style="background:#0f2746;color:#f1f5f9;border:1px solid #234566;border-radius:14px;padding:18px 20px;margin:16px 0;line-height:1.55;"><div style="color:#93c5fd;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Hands-on challenge</div><div style="font-size:20px;font-weight:700;margin-bottom:5px;">Predict latency from network measurements</div><div style="font-size:14px;">45–60 minutes</div></div>
+# ![Hands-on challenge: Predict latency from network measurements. 45–60 minutes](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/overview.svg)
 #
 # During a video call, frames can arrive with different delays. Consider two equally sized frames sent under different traffic loads. Which would you expect to arrive later? What information would help you make that prediction?
 #
@@ -34,7 +34,11 @@
 #
 # Start with a degree-0 baseline that predicts the same latency for every frame. Then compare higher-degree polynomial models and a neural network. Investigate how model flexibility and regularization affect training and validation error. Before each change, predict its effect, run the experiment, and explain what you observe.
 #
-# <div style="display:flex;flex-wrap:wrap;gap:10px;margin:20px 0;"><div style="flex:1 1 145px;min-width:0;background:#f8fafc;color:#334155;border:1px solid #e2e8f0;border-radius:12px;padding:14px;"><div style="color:#2563eb;font-size:11px;font-weight:700;letter-spacing:.06em;">01 · 10 min</div><div style="color:#0f172a;font-weight:700;font-size:14px;margin:6px 0;">Inspect the data</div><div style="font-size:12px;line-height:1.5;">Measurements and training/validation split</div></div><div style="flex:1 1 145px;min-width:0;background:#f8fafc;color:#334155;border:1px solid #e2e8f0;border-radius:12px;padding:14px;"><div style="color:#2563eb;font-size:11px;font-weight:700;letter-spacing:.06em;">02 · 10 min</div><div style="color:#0f172a;font-weight:700;font-size:14px;margin:6px 0;">Run the baseline</div><div style="font-size:12px;line-height:1.5;">Record the starting score</div></div><div style="flex:1 1 145px;min-width:0;background:#f8fafc;color:#334155;border:1px solid #e2e8f0;border-radius:12px;padding:14px;"><div style="color:#2563eb;font-size:11px;font-weight:700;letter-spacing:.06em;">03 · 15 min</div><div style="color:#0f172a;font-weight:700;font-size:14px;margin:6px 0;">Compare model settings</div><div style="font-size:12px;line-height:1.5;">Investigate degree and regularization</div></div><div style="flex:1 1 145px;min-width:0;background:#f8fafc;color:#334155;border:1px solid #e2e8f0;border-radius:12px;padding:14px;"><div style="color:#2563eb;font-size:11px;font-weight:700;letter-spacing:.06em;">04 · 10 min</div><div style="color:#0f172a;font-weight:700;font-size:14px;margin:6px 0;">Compare models</div><div style="font-size:12px;line-height:1.5;">Neural network and model choice</div></div><div style="flex:1 1 145px;min-width:0;background:#f8fafc;color:#334155;border:1px solid #e2e8f0;border-radius:12px;padding:14px;"><div style="color:#2563eb;font-size:11px;font-weight:700;letter-spacing:.06em;">05 · 5 min</div><div style="color:#0f172a;font-weight:700;font-size:14px;margin:6px 0;">Upload results</div><div style="font-size:12px;line-height:1.5;">Selected model and remaining errors</div></div></div>
+# ![01 · 10 min: Inspect the data. Measurements and training/validation split](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/activity-01.svg)
+# ![02 · 10 min: Run the baseline. Record the starting score](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/activity-02.svg)
+# ![03 · 15 min: Compare model settings. Investigate degree and regularization](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/activity-03.svg)
+# ![04 · 10 min: Compare models. Neural network and model choice](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/activity-04.svg)
+# ![05 · 5 min: Upload results. Selected model and remaining errors](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/activity-05.svg)
 
 # %% [markdown]
 # ## Setup
@@ -1016,7 +1020,7 @@ def upload_submission(api_url, token=None):
 
 
 # %% [markdown]
-# <div style="display:inline-block;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:20px;padding:4px 10px;margin:20px 0 2px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;">01 · Explore the data</div>
+# ![01 · Explore the data](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/step-01.svg)
 #
 # ## 1. Inspect the measurements
 # Each row describes one video frame. The ten measurements below are the model inputs. The target, `latency_ms`, records the observed delivery latency in milliseconds.
@@ -1035,14 +1039,14 @@ def upload_submission(api_url, token=None):
 #
 # Each frame has an `id` so the server can match its prediction to the corresponding observation. Use the measurement columns to fit the models.
 #
-# <div style="background:#f8fafc;color:#334155;border:1px solid #cbd5e1;border-radius:14px;padding:18px 20px;margin:16px 0;line-height:1.55;"><div style="color:#475569;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Before running</div><div style="font-size:20px;font-weight:700;margin-bottom:5px;">Relate measurements to latency</div><div style="font-size:14px;">How should frame size and traffic load affect latency? State a prediction, then compare it with the plots.</div></div>
+# ![Before running: Relate measurements to latency. How should frame size and traffic load affect latency? State a prediction, then compare it with the plots.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/before-running.svg)
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Explore the public measurements { display-mode: "form" }
 inspect_data()
 
 # %% [markdown]
-# <div style="display:inline-block;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:20px;padding:4px 10px;margin:20px 0 2px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;">02 · Set up a fair comparison</div>
+# ![02 · Set up a fair comparison](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/step-02.svg)
 #
 # ## 2. Split the public data
 # `public.csv` contains **1,000 labelled frames**. Divide these frames into training and validation sets so you can evaluate predictions on examples held out during fitting. The server uses separate private test labels to score uploads.
@@ -1078,7 +1082,7 @@ set_train_validation_split(train_percent)
 # Start with a constant prediction: the **average training latency**. This is a degree-0 polynomial model. Its validation RMSE gives a reference for assessing models that use the network measurements.
 
 # %% [markdown]
-# <div style="display:inline-block;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:20px;padding:4px 10px;margin:20px 0 2px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;">03 · Evaluate the baseline</div>
+# ![03 · Evaluate the baseline](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/step-03.svg)
 #
 # ## 3. Evaluate the baseline model
 # A **degree-0 polynomial** has one parameter, a constant $b$. It predicts $\hat y=b$ for every frame. With squared loss, fitting sets $b$ to the **average training latency**. This is the baseline against which you will compare the other models.
@@ -1096,7 +1100,7 @@ set_train_validation_split(train_percent)
 run_experiment(degree=BASELINE[0], regularization=BASELINE[1])
 
 # %% [markdown]
-# <div style="background:#eff6ff;color:#1e3a8a;border:1px solid #bfdbfe;border-radius:14px;padding:18px 20px;margin:16px 0;line-height:1.55;"><div style="color:#1d4ed8;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Upload 1 of 2</div><div style="font-size:20px;font-weight:700;margin-bottom:5px;">Record the baseline score</div><div style="font-size:14px;">Run the baseline, enter your name and surname, then upload its predictions before changing the settings.</div></div>
+# ![Upload 1 of 2: Record the baseline score. Run the baseline, enter your name and surname, then upload its predictions before changing the settings.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/upload-baseline.svg)
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Upload 1: refit and upload the baseline { display-mode: "form" }
@@ -1150,7 +1154,7 @@ parameters = (dict(degree=degree, regularization=regularization, loss=loss, hube
 run_experiment(model_family, target_transform, **parameters)
 
 # %% [markdown]
-# <div style="background:#f8fafc;color:#334155;border:1px solid #cbd5e1;border-radius:14px;padding:18px 20px;margin:16px 0;line-height:1.55;"><div style="color:#475569;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Investigation A</div><div style="font-size:20px;font-weight:700;margin-bottom:5px;">Compare degree and regularization</div><div style="font-size:14px;">Change one setting at a time. Explain how training and validation error respond.</div></div>
+# ![Investigation A: Compare degree and regularization. Change one setting at a time. Explain how training and validation error respond.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/investigation-a.svg)
 #
 # ### Investigation A: degree and regularization
 # 1. **Degree:** keep regularization at zero and compare degree 0, degree 1 and a higher degree. How do training and validation RMSE change? Which degree gives the lowest validation error?
@@ -1160,7 +1164,7 @@ run_experiment(model_family, target_transform, **parameters)
 # Keep the baseline in the experiment table, which records one entry per distinct configuration. Explain your conclusions through comparisons that hold the other settings fixed.
 
 # %% [markdown]
-# <div style="display:inline-block;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:20px;padding:4px 10px;margin:20px 0 2px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;">04 · Compare a neural network</div>
+# ![04 · Compare a neural network](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/step-04.svg)
 #
 # ## 4. Compare a neural network
 # This **neural network** has one hidden layer. Each hidden unit forms a weighted sum of the inputs, adds a bias and applies a **ReLU** function: positive values pass through, and negative values become zero. A linear output combines the hidden-unit responses to predict latency.
@@ -1176,7 +1180,7 @@ run_experiment(model_family, target_transform, **parameters)
 #
 # Keep the other settings fixed for each comparison. A large learning rate can make training unstable; a small one may require more epochs. The network trains for the selected number of epochs using the training frames.
 #
-# <div style="background:#f8fafc;color:#334155;border:1px solid #cbd5e1;border-radius:14px;padding:18px 20px;margin:16px 0;line-height:1.55;"><div style="color:#475569;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Investigation B</div><div style="font-size:20px;font-weight:700;margin-bottom:5px;">Compare model families</div><div style="font-size:14px;">Keep the data split and target scale fixed when comparing the two model families.</div></div>
+# ![Investigation B: Compare model families. Keep the data split and target scale fixed when comparing the two model families.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/investigation-b.svg)
 #
 # ### Investigation B: model family and training duration
 # Select `model_family="neural_network"` and run the default neural-network settings. Compare its validation RMSE with a polynomial model using the **same data split and target scale**.
@@ -1195,7 +1199,7 @@ run_experiment(model_family, target_transform, **parameters)
 # Compare each choice with its default using validation RMSE. Evaluation uses the same error measure in milliseconds for every configuration.
 
 # %% [markdown]
-# <div style="display:inline-block;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:20px;padding:4px 10px;margin:20px 0 2px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;">05 · Select a model</div>
+# ![05 · Select a model](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/step-05.svg)
 #
 # ## 5. Select a model using validation evidence
 # Choose a model using **validation RMSE** and the diagnostic plots. Prepare to explain:
@@ -1217,7 +1221,7 @@ run_experiment(model_family, target_transform, **parameters)
 # Rerun the selected configuration before the final upload. The upload refits its settings on **all public labels**. Validation RMSE describes the earlier fit on the training split; public fitting RMSE describes the new fit on all public frames.
 
 # %% [markdown]
-# <div style="display:inline-block;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:20px;padding:4px 10px;margin:20px 0 2px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;">06 · Upload the selected model</div>
+# ![06 · Upload the selected model](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/step-06.svg)
 #
 # ## 6. Refit and upload the selected model
 # Run the selected configuration in the experiment cell, then run **Upload 2**. It reuses the name, surname, upload address and access-code choice from Upload 1. If the instructor provides an access code, enter it again at the private prompt.
@@ -1229,7 +1233,7 @@ run_experiment(model_family, target_transform, **parameters)
 # The JSON contains the selected model's predictions and metadata. The final upload replaces the local JSON file. The server retains both accepted uploads in its score history.
 
 # %% [markdown]
-# <div style="background:#0f2746;color:#f1f5f9;border:1px solid #234566;border-radius:14px;padding:18px 20px;margin:16px 0;line-height:1.55;"><div style="color:#93c5fd;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Upload 2 of 2</div><div style="font-size:20px;font-weight:700;margin-bottom:5px;">Upload the selected model</div><div style="font-size:14px;">Run the selected configuration again, then upload its predictions using the name, surname and upload address from Upload 1.</div></div>
+# ![Upload 2 of 2: Upload the selected model. Run the selected configuration again, then upload its predictions using the name, surname and upload address from Upload 1.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/upload-selected.svg)
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Upload 2: refit and upload the selected model { display-mode: "form" }

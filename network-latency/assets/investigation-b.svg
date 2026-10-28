@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="124" viewBox="0 0 840 124" role="img" aria-labelledby="title description">
+  <title id="title">Compare model families</title>
+  <desc id="description">Investigation B: Compare model families. Keep the data split and target scale fixed when comparing the two model families.</desc>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="1" y="1" width="838" height="122" rx="14" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="22" y="30" font-size="11" font-weight="700" fill="#475569" letter-spacing="1.1">INVESTIGATION B</text>
+    <text x="22" y="65" font-size="22" font-weight="700" fill="#334155">Compare model families</text>
+    <text x="22" y="94" font-size="16" font-weight="400" fill="#334155">Keep the data split and target scale fixed when comparing the two model families.</text>
+  </g>
+</svg>
