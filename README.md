@@ -4,6 +4,8 @@ Hands-on activities for the Introduction to Artificial Intelligence course at EU
 Open a notebook in Google Colab, choose a CPU runtime, and run its setup cells.
 The notebook downloads its public data automatically. Use the supplied controls
 to run experiments and submit predictions to the course leaderboard.
+For the final network-latency upload, choose a recorded configuration from the
+dropdown and run Upload 2.
 
 | Challenge | Activity | Open notebook |
 | --- | --- | --- |

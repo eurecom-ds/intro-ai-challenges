@@ -471,9 +471,9 @@ def completion_issues(experiments, selected, student_name, student_surname):
     try:
         chosen = configuration_key(selected)
         if chosen not in by_key:
-            issues.append("Rerun your chosen configuration in the experiment cell before finalizing.")
+            issues.append("Choose one of the recorded configurations before finalizing.")
     except (KeyError, TypeError, ValueError):
-        issues.append("Run the experiment cell with your chosen settings before finalizing.")
+        issues.append("Run your experiments, then choose a configuration before finalizing.")
     return list(dict.fromkeys(issues))
 
 
@@ -604,6 +604,10 @@ print("A separate private test set is available for scoring your uploads.")
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Setup 3: prepare the experiment table and uploads { display-mode: "form" }
 # Rerunning this cell clears the local comparison table and frozen submission.
+if globals().get("configuration_selector") is not None:
+    configuration_selector.disabled = True
+    configuration_selector.close()
+configuration_selector = None
 experiments = []
 last_result = None
 finalized_submission = None
@@ -664,6 +668,65 @@ def show_table(headers, rows, *, highlight=None):
                  '<thead><tr>' + heading + '</tr></thead><tbody>' + ''.join(body) + '</tbody></table></div>'))
 
 
+def clear_configuration_selector():
+    global configuration_selector
+    if configuration_selector is not None:
+        configuration_selector.disabled = True
+        configuration_selector.options = []
+        configuration_selector.close()
+    configuration_selector = None
+
+
+def refresh_configuration_selector(preferred=None):
+    if configuration_selector is None:
+        return
+    choice = configuration_selector.value if preferred is None else preferred
+    options = [(f"Run {number} · validation RMSE {record['validation_rmse']:.1f} ms · "
+                + describe_settings(record), configuration_key(record))
+               for number, record in enumerate(experiments, start=1)]
+    configuration_selector.options = options
+    configuration_selector.disabled = not options
+    if options:
+        keys = [key for _, key in options]
+        configuration_selector.value = (choice if choice in keys else
+                                        configuration_key(min(experiments, key=lambda record: record["validation_rmse"])))
+
+
+def show_configuration_selector():
+    global configuration_selector
+    previous = configuration_selector.value if configuration_selector is not None else None
+    clear_configuration_selector()
+    if not experiments:
+        show_notice("Run some experiments first", "The configuration list uses the runs in your experiment table.", tone="attention")
+        return
+    import ipywidgets as widgets
+    try:
+        from google.colab import output
+    except ImportError:
+        pass
+    else:
+        output.enable_custom_widget_manager()
+    configuration_selector = widgets.Dropdown(description="Configuration:",
+                                              layout=widgets.Layout(width="100%"),
+                                              style={"description_width": "initial"})
+    refresh_configuration_selector(preferred=previous)
+    print("Choose a recorded configuration, then run Upload 2. Lower validation RMSE is better.")
+    display(configuration_selector)
+
+
+def rerun_selected_configuration():
+    if configuration_selector is None or configuration_selector.disabled:
+        show_notice("Choose a configuration", "Run the configuration-list cell above Upload 2, then select a recorded experiment.", tone="attention")
+        return False
+    chosen = configuration_selector.value
+    record = next((record for record in experiments if configuration_key(record) == chosen), None)
+    if record is None or record["train_percent"] != active_train_percent:
+        show_notice("Refresh the configuration list", "Choose a configuration evaluated with the current data split.", tone="attention")
+        return False
+    run_experiment(**_record_settings(record), show_output=False)
+    return last_result is not None and configuration_key(last_result["selected"]) == chosen
+
+
 def set_train_validation_split(train_percent):
     global train_indices, validation_indices, X_train, y_train, X_validation, y_validation
     global active_train_percent, last_result, finalized_submission
@@ -674,6 +737,7 @@ def set_train_validation_split(train_percent):
         return
     changed = active_train_percent is not None and active_train_percent != train_percent
     if active_train_percent != train_percent:
+        clear_configuration_selector()
         experiments.clear()
         last_result = None
         finalized_submission = None
@@ -799,7 +863,7 @@ def draw_training_curve(model):
     plt.show(); plt.close(fig)
 
 
-def run_experiment(model_family="polynomial", target_transform="raw", **parameters):
+def run_experiment(model_family="polynomial", target_transform="raw", *, show_output=True, **parameters):
     global last_result
     try:
         if active_train_percent is None:
@@ -830,6 +894,9 @@ def run_experiment(model_family="polynomial", target_transform="raw", **paramete
         experiments[existing] = record.copy()
     last_result = {"selected": copy.deepcopy(record), "configuration": copy.deepcopy(configuration),
                    "prepared_public": prepared_public.copy(), "prepared_test": prepared_test.copy()}
+    refresh_configuration_selector()
+    if not show_output:
+        return
     print(describe_settings(record))
     print(f"{len(experiments)} distinct configurations; selection-phase fit uses only {len(train_indices)} training labels.")
     show_metrics([("Training RMSE", f"{record['train_rmse']:,.1f} ms", "Error on the fitting examples", "#2563eb"),
@@ -892,7 +959,7 @@ def finalize_submission(student_name, student_surname, *, baseline=False):
 
 def export_submission():
     if finalized_submission is None:
-        print("Run your chosen experiment, enter your name and surname, and finalize it first.")
+        print("Complete an upload cell first to save your submission JSON.")
         return
     filename, payload = finalized_submission
     Path(filename).write_bytes(payload)
@@ -1213,35 +1280,40 @@ run_experiment(model_family, target_transform, **parameters)
 #
 # Comparisons can share runs. Each distinct configuration counts once. Discuss your reasoning with the instructor; the upload records the selected model's predictions, settings and scores.
 #
-# Rerun the selected configuration before the final upload. The upload refits its settings on **all public labels**. Validation RMSE describes the earlier fit on the training split; public fitting RMSE describes the new fit on all public frames.
+# Use the configuration list below to choose one of your evaluated settings. Upload 2 evaluates that configuration again, then refits its settings on **all public labels**. Validation RMSE describes the fit on the training split; public fitting RMSE describes the new fit on all public frames.
 
 # %% [markdown]
 # ![06 · Upload the selected model](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/step-06.svg)
 #
 # ## 6. Refit and upload the selected model
-# Run the selected configuration in the experiment cell, then run **Upload 2**. It reuses the name, surname, upload address and access code from Upload 1.
+# Run the configuration-list cell below, choose a recorded experiment from the dropdown, then run **Upload 2**. The list shows each run's settings and validation RMSE and initially selects the lowest validation RMSE. Upload 2 reuses the name, surname, upload address and access code from Upload 1.
 #
-# To correct your name, surname, upload address or access code, update the fields in Upload 1. Run the baseline and Upload 1 again to save those values, then rerun the selected experiment and Upload 2.
+# To correct your name, surname, upload address or access code, update the fields in Upload 1. Run the baseline and Upload 1 again to save those values, then choose your final configuration and run Upload 2.
 #
 # Upload 2 checks the required investigations and lists any remaining steps. Complete those steps and run it again. It then refits the model on all public frames, saves the predictions and uploads them. Compare the private test score with the baseline score on the dashboard.
 #
 # The JSON contains the selected model's predictions and metadata. The final upload replaces the local JSON file. The server retains both accepted uploads in its score history.
 
+# %% cellView="form" jupyter={"source_hidden": true}
+# @title Choose a configuration for Upload 2 { display-mode: "form" }
+# @markdown Run this cell to open the list of evaluated configurations. Choose using validation RMSE, then run Upload 2. New experiments update the list while keeping your choice.
+show_configuration_selector()
+
 # %% [markdown]
-# ![Upload 2 of 2: Upload the selected model. Run the selected configuration again, then upload its predictions using the name, surname and upload address from Upload 1.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/upload-selected.svg)
+# ![Upload 2 of 2: Upload the selected model. Choose a configuration from the list above, then upload using the names, address and access code from Upload 1.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/upload-selected.svg)
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Upload 2: refit and upload the selected model { display-mode: "form" }
-# @markdown Run the selected configuration again before uploading. This cell checks the required investigations, then refits and uploads using the names, upload address and access code from Upload 1.
+# @markdown Choose a configuration from the list above. This cell evaluates it again, checks the required investigations, then refits and uploads using the names, upload address and access code from Upload 1.
 if not all(field in globals() for field in ("name", "surname", "submission_url", "access_code")):
     print("Run Upload 1 after the baseline to set your names, upload address and access code first.")
-else:
+elif rerun_selected_configuration():
     finalize_submission(name, surname)
     if finalized_submission is not None:
         upload_submission(submission_url, token=access_code)
 
 # %% [markdown]
-# If the server is unavailable, download the submission JSON below and keep it for manual upload. To submit a different configuration, run its experiment and Upload 2 again to save predictions with those settings.
+# If the server is unavailable, download the submission JSON below and keep it for manual upload. To submit a different configuration, choose it from the list and run Upload 2 again to save predictions with those settings.
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Download the submission JSON { display-mode: "form" }

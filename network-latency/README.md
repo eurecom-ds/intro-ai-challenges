@@ -14,8 +14,10 @@ in milliseconds.
 3. Inspect the data and run the degree-0 baseline.
 4. Enter your name, surname and the instructor's code in the `access_code`
    field in Upload 1, then upload the baseline.
-5. Complete the investigations, choose a model using validation RMSE, and
-   upload its predictions.
+5. Complete the investigations and compare models using validation RMSE.
+6. Run the selection cell before Upload 2 and choose a recorded configuration
+   from the dropdown.
+7. Run Upload 2 to upload its predictions.
 
 Use the notebook controls for each experiment. Predict the effect of a change
 before running it, then compare the result with your prediction. Keep the
@@ -26,6 +28,15 @@ Completion requires at least five distinct configurations: the baseline,
 a comparison that changes only polynomial degree, a comparison that changes
 only regularization at a positive degree, and a neural-network configuration.
 Prepare to explain your comparisons and residual plots to the instructor.
+
+The dropdown lists each recorded run, its settings and validation RMSE. It
+initially selects the lowest validation RMSE. New experiments refresh the list
+while keeping your choice. Changing the data split or rerunning Setup 3 clears
+the selection.
+
+Upload 2 reruns the chosen configuration on the training split before refitting
+it on all public labels. To upload another recorded configuration, change the
+dropdown and run Upload 2 again.
 
 Both uploads refit their chosen settings on all public labels before predicting
 the 2,400 test frames. Validation RMSE describes the model-selection fit;
@@ -47,8 +58,8 @@ score history. Your name and surname appear on the course dashboard.
 
 Version: `network-latency-v1`. Keep the original data files unchanged.
 For a local Jupyter run, open the notebook from this directory so it finds
-`data/` beside it. NumPy, Matplotlib, IPython and CPU PyTorch are required;
-Colab supplies these libraries.
+`data/` beside it. NumPy, Matplotlib, IPython, ipywidgets and CPU PyTorch are
+required; Colab supplies these libraries.
 
 The editable source is `notebook.py`. See the repository README for the pinned
 Jupytext generation command.
