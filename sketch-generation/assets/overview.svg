@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="124" viewBox="0 0 840 124" role="img" aria-labelledby="title description">
+  <title id="title">Teach a model to draw</title>
+  <desc id="description">Hands-on generative AI challenge. Generate apples, houses, fish, trees and umbrellas. 60 minutes. Colab GPU required.</desc>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="1" y="1" width="838" height="122" rx="14" fill="#0f2746" stroke="#234566"/>
+    <text x="22" y="30" font-size="11" font-weight="700" fill="#93c5fd" letter-spacing="1.1">HANDS-ON CHALLENGE · GENERATIVE AI</text>
+    <text x="22" y="65" font-size="25" font-weight="700" fill="#f1f5f9">Teach a model to draw</text>
+    <text x="22" y="94" font-size="16" fill="#f1f5f9">60 minutes · Colab GPU required · Five drawing categories</text>
+  </g>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="124" viewBox="0 0 840 124" role="img" aria-labelledby="title description">
+  <title id="title">Change one setting, inspect the drawings</title>
+  <desc id="description">Controlled investigations: training epochs, latent regularization and latent dimensions. Predict an effect before each run.</desc>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="1" y="1" width="838" height="122" rx="14" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="22" y="30" font-size="11" font-weight="700" fill="#475569" letter-spacing="1.1">CONTROLLED INVESTIGATIONS</text>
+    <text x="22" y="65" font-size="22" font-weight="700" fill="#334155">Change one setting, inspect the drawings</text>
+    <text x="22" y="94" font-size="16" fill="#334155">Training time · Latent regularization · Latent dimensions</text>
+  </g>
+</svg>
