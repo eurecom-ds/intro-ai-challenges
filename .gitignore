@@ -11,4 +11,5 @@ network-latency/network-latency_*.json
 network-latency/network-latency_*.zip
 sketch-generation/sketch-generation_*.json
 sketch-generation/*.pt
+sketch-generation/sketch-diffusion_*.npz
 _private/
