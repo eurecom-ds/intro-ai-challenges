@@ -23,12 +23,14 @@ LATENT_DIMS = (2, 4, 8, 16, 32)
 BETAS = (0.0, 0.1, 0.5, 1.0, 2.0, 4.0, 8.0)
 EPOCHS = (5, 10, 20, 40)
 LEARNING_RATES = (0.0003, 0.001, 0.003)
+LIKELIHOODS = ("binomial", "gaussian")
 BATCH_SIZE = 256
 MODEL_SEED = 42
 SAMPLE_SEED = 2026
 
 
-def settings(latent_dim=16, beta=1.0, epochs=20, learning_rate=0.001, seed=42):
+def settings(latent_dim=16, beta=1.0, epochs=20, learning_rate=0.001, seed=42,
+             likelihood="binomial"):
     """Return the active settings accepted by the classroom controls."""
     for name, value, choices in (("latent_dim", latent_dim, LATENT_DIMS),
                                   ("epochs", epochs, EPOCHS), ("seed", seed, (MODEL_SEED,))):
@@ -37,8 +39,10 @@ def settings(latent_dim=16, beta=1.0, epochs=20, learning_rate=0.001, seed=42):
     for name, value, choices in (("beta", beta, BETAS), ("learning_rate", learning_rate, LEARNING_RATES)):
         if isinstance(value, (bool, np.bool_)) or not isinstance(value, (int, float, np.integer, np.floating)) or value not in choices:
             raise ValueError(f"Choose {name} from {list(choices)}.")
+    if not isinstance(likelihood, str) or likelihood not in LIKELIHOODS:
+        raise ValueError(f"Choose likelihood from {list(LIKELIHOODS)}.")
     return {"latent_dim": int(latent_dim), "beta": float(beta), "epochs": int(epochs),
-            "learning_rate": float(learning_rate), "seed": int(seed)}
+            "learning_rate": float(learning_rate), "seed": int(seed), "likelihood": likelihood}
 
 
 BASELINE = settings(epochs=5)
@@ -112,8 +116,16 @@ def _deterministic(device):
         torch.backends.cuda.matmul.allow_tf32, torch.backends.cudnn.allow_tf32 = matmul_tf32, cudnn_tf32
 
 
-def _terms(logits, images, mu, logvar):
-    reconstruction = F.binary_cross_entropy_with_logits(logits, images, reduction="none").flatten(1).sum(1)
+def _terms(logits, images, mu, logvar, likelihood="binomial"):
+    if likelihood == "binomial":
+        # Binomial count out of 255: NLL / 255, omitting the fixed count term.
+        pixel_loss = F.binary_cross_entropy_with_logits(logits, images, reduction="none")
+    elif likelihood == "gaussian":
+        # Gaussian mean in [0,1], variance 1; omit the fixed normalizing term.
+        pixel_loss = 0.5 * (torch.sigmoid(logits) - images).square()
+    else:
+        raise ValueError(f"Choose likelihood from {list(LIKELIHOODS)}.")
+    reconstruction = pixel_loss.flatten(1).sum(1)
     kl = 0.5 * (mu.square() + logvar.exp() - 1.0 - logvar).sum(1)
     return reconstruction.mean(), kl.mean()
 
@@ -122,14 +134,14 @@ def _tensor_images(images, device):
     return torch.from_numpy(_images(images).copy()).unsqueeze(1).to(device=device, dtype=torch.float32).div_(255.0)
 
 
-def _validation_terms(network, images, labels, noise):
+def _validation_terms(network, images, labels, noise, likelihood="binomial"):
     total = torch.zeros(2, device=images.device)
     with torch.no_grad():
         for start in range(0, len(images), BATCH_SIZE):
             batch, condition = images[start:start+BATCH_SIZE], labels[start:start+BATCH_SIZE]
             mu, logvar = network.encode(batch, condition)
             z = mu + (0.5 * logvar).exp() * noise[start:start+BATCH_SIZE, :network.latent_dim]
-            r, kl = _terms(network.decode(z, condition), batch, mu, logvar)
+            r, kl = _terms(network.decode(z, condition), batch, mu, logvar, likelihood)
             total += torch.stack((r, kl)) * len(batch)
     return (total / len(images)).cpu().tolist()
 
@@ -178,7 +190,7 @@ def train_cvae(images, labels, config=None, *, device="cuda", progress=None,
                 mu, logvar = network.encode(batch, condition)
                 noise = torch.randn((len(batch), 32), generator=noise_rng, device=device)[:, :config["latent_dim"]]
                 z = mu + (0.5 * logvar).exp() * noise
-                reconstruction, kl = _terms(network.decode(z, condition), batch, mu, logvar)
+                reconstruction, kl = _terms(network.decode(z, condition), batch, mu, logvar, config["likelihood"])
                 objective = reconstruction + config["beta"] * kl
                 if not torch.isfinite(objective).item():
                     raise ValueError("Training became non-finite. Reduce the learning rate and rerun the experiment.")
@@ -190,7 +202,7 @@ def train_cvae(images, labels, config=None, *, device="cuda", progress=None,
             record = {"epoch": epoch, "reconstruction": r, "kl": kl, "objective": r + config["beta"] * kl}
             if xv is not None:
                 network.eval()
-                vr, vk = _validation_terms(network, xv, yv, validation_noise)
+                vr, vk = _validation_terms(network, xv, yv, validation_noise, config["likelihood"])
                 if not np.isfinite([vr, vk]).all():
                     raise ValueError("Validation became non-finite. Reduce the learning rate and rerun the experiment.")
                 record.update(validation_reconstruction=vr, validation_kl=vk,
@@ -281,6 +293,7 @@ def _main():
     train.add_argument("--beta", type=float, default=1.0)
     train.add_argument("--epochs", type=int, default=20)
     train.add_argument("--learning-rate", type=float, default=0.001)
+    train.add_argument("--likelihood", choices=LIKELIHOODS, default="binomial")
     sample = commands.add_parser("sample")
     sample.add_argument("--checkpoint", required=True)
     sample.add_argument("--output", required=True)
@@ -293,7 +306,8 @@ def _main():
         if args.validation:
             with np.load(args.validation, allow_pickle=False) as data:
                 validation = {"validation_images": data["images"], "validation_labels": data["labels"]}
-        config = settings(args.latent_dim, args.beta, args.epochs, args.learning_rate)
+        config = settings(args.latent_dim, args.beta, args.epochs, args.learning_rate,
+                          likelihood=args.likelihood)
         if args.device == "cpu":
             torch.set_num_threads(1)
         checkpoint = train_cvae(images, labels, config, device=args.device,

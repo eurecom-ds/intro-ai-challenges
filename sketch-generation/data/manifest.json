@@ -38,8 +38,8 @@
     },
     "model_module": {
       "path": "model.py",
-      "sha256": "2d73bb9b0cb099acd9c62bac462d2d27ed7c054b2c181ddfb2e8eb01d262d7b0",
-      "size_bytes": 15471
+      "sha256": "707eb97904c8ed1a09731e3a9a493617e443c4245d89fe55766f10317fa8ae6b",
+      "size_bytes": 16364
     },
     "train": {
       "path": "data/train.npz",
