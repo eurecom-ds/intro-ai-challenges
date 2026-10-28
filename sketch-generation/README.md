@@ -2,11 +2,6 @@
 
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/eurecom-ds/intro-ai-challenges/blob/main/sketch-generation/notebook.ipynb)
 
-An alternative [diffusion activity](README-diffusion.md) trains a small model
-from scratch using Hugging Face Diffusers. Both versions use the same public
-drawings and evaluator. This VAE version supports leaderboard uploads; the
-diffusion version saves experiments locally.
-
 Train a conditional variational autoencoder (VAE) to generate new drawings of
 an apple, house, fish, tree or umbrella. This 60-minute activity investigates
 training time, latent regularization and latent-space size. Students use the
