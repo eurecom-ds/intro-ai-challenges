@@ -1,0 +1,81 @@
+{
+  "challenge_version": "sketch-generation-v1",
+  "classes": [
+    "apple",
+    "house",
+    "fish",
+    "tree",
+    "umbrella"
+  ],
+  "dataset_fingerprint": "ac3c25cc06b2554b715d555f5a91ca4497a588ac763b8a0ba8c6b9d5d1174f94",
+  "evaluator_fingerprint": "a32acdbbc6f92c754b66fa3b75604137e91bd2e7d9b706d31a5998bc7262b8a6",
+  "evaluator_validation": {
+    "balanced_accuracy": 0.9464,
+    "gates": {
+      "balanced_accuracy_at_least_90_percent": true,
+      "every_class_recall_at_least_85_percent": true,
+      "human_sketches_beat_degenerate_batches": true,
+      "numpy_torch_logits_agree": true
+    },
+    "recall_by_class": {
+      "apple": 0.9625,
+      "fish": 0.965,
+      "house": 0.943,
+      "tree": 0.9285,
+      "umbrella": 0.933
+    }
+  },
+  "files": {
+    "evaluator": {
+      "path": "data/evaluator.npz",
+      "sha256": "90dc7460aab8484bd36314f6dd0a89c0081aa5943da1deeb645569c058f8e878",
+      "size_bytes": 493449
+    },
+    "evaluator_module": {
+      "path": "evaluator.py",
+      "sha256": "2db6a9e0e99f80f2570c6e8b9ffa8ab8bf15ea8f36bb91a22287b74a667f2a1a",
+      "size_bytes": 10495
+    },
+    "model_module": {
+      "path": "model.py",
+      "sha256": "2d73bb9b0cb099acd9c62bac462d2d27ed7c054b2c181ddfb2e8eb01d262d7b0",
+      "size_bytes": 15471
+    },
+    "train": {
+      "path": "data/train.npz",
+      "sha256": "95b5b865a871a542cc5dd7188a4cef81c8b6e6868c0e9b265881a172a6ec9d3b",
+      "size_bytes": 6585758
+    },
+    "validation": {
+      "path": "data/validation.npz",
+      "sha256": "b5061af32a5f6b90ca3a9b53553ed035c50f8a6b32cc6c44a74453ef726f4cf1",
+      "size_bytes": 673997
+    }
+  },
+  "image_shape": [
+    28,
+    28
+  ],
+  "metric": {
+    "direction": "minimize",
+    "estimator": "class-averaged biased empirical squared MMD",
+    "kernel": "equal mixture of RBF kernels at half, one and twice each class bandwidth",
+    "name": "Sketch distance",
+    "scale": 1000.0,
+    "version": "sketch-mmd-rbf-v1"
+  },
+  "pixel_convention": "0=background;255=ink",
+  "reference_count": 512,
+  "release_status": "pending_instructor_colab_rehearsal",
+  "samples_per_class": 200,
+  "source": {
+    "creator": "Google, Inc.",
+    "license": "CC BY 4.0",
+    "modifications": "Selected, deduplicated bitmap subsets.",
+    "name": "The Quick, Draw! Dataset",
+    "url": "https://github.com/googlecreativelab/quickdraw-dataset"
+  },
+  "status": "evaluator_ready",
+  "train_count_per_class": 5000,
+  "validation_count_per_class": 512
+}
