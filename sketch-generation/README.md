@@ -4,8 +4,8 @@
 
 Train a conditional variational autoencoder (VAE) to generate new drawings of
 an apple, house, fish, tree or umbrella. This 60-minute activity investigates
-training time, latent regularization and latent-space size. Students use the
-supplied controls without writing code.
+training time, latent regularization, latent-space size and reconstruction
+likelihood. Students use the supplied controls without writing code.
 
 ## Start the activity
 
@@ -40,8 +40,18 @@ than an input drawing.
 | Smaller latent space | 2 | 1 | 20 | 0.001 |
 
 Use the same training and validation drawings throughout the activity. The
-default experiment has 16 latent dimensions, β = 1 and 20 epochs. The controls
-also offer other learning rates and model settings for further investigation.
+default experiment has 16 latent dimensions, β = 1, 20 epochs and a Binomial
+likelihood. Keep that likelihood fixed for the five main experiments. The
+controls also offer a Gaussian likelihood and other learning rates for further
+investigation.
+
+The likelihood selects the reconstruction loss on pixel intensities scaled to
+0–1. Binomial uses binary cross-entropy: the negative log likelihood of an
+intensity count out of 255, divided by 255, with constant terms omitted.
+Gaussian uses half the squared pixel error with fixed variance 1 and its
+constant term omitted. Both options generate the decoder's mean pixel
+intensities. Repeat a configuration with the other likelihood to inspect its
+effect on outlines, gray pixels and variety.
 
 Completion requires the baseline, at least five distinct configurations, an
 epoch comparison, weaker and stronger regularization comparisons, and a latent
@@ -49,9 +59,11 @@ dimension comparison. Controlled comparisons change one setting at a time.
 Equivalent configurations can share runs. Identical reruns count once.
 
 Inspect the reconstruction and KL components separately. Their weighted sum
-uses the selected β, so use the public validation distribution score to compare
-generation across configurations. Prepare to explain which drawings improve,
-which variations the model captures and where it repeats a similar pattern.
+uses the selected β. The two likelihoods have different loss scales, which
+changes the balance with KL at fixed β. Use the public validation distribution
+score to compare generation across configurations. Prepare to explain which
+drawings improve, which variations the model captures and where it repeats a
+similar pattern.
 
 ## Scoring and uploads
 
@@ -94,8 +106,9 @@ Choosing another model or changing your identity prepares a new export.
 - `data/evaluator.npz` contains the fixed classifier's numeric parameters.
 - `assets/` contains static SVG notebook panels.
 
-Version: `sketch-generation-v1`. Downloads use that immutable release tag.
-The release tag must exist before distributing its Colab link. See the
+Dataset and scoring version: `sketch-generation-v1`. Downloads use the immutable
+Git revision recorded in the notebook's `RELEASE_REVISION`. Publish that
+revision before distributing the updated Colab notebook. See the
 repository README for the pinned Jupytext conversion command; generate
 `sketch-generation/notebook.ipynb` from `sketch-generation/notebook.py` and keep
 all cell outputs and execution counts empty.
@@ -123,7 +136,7 @@ python sketch-generation/model.py train \
   --data sketch-generation/data/train.npz \
   --validation sketch-generation/data/validation.npz \
   --output /private/tmp/sketch-generation-rehearsal/baseline.pt \
-  --device cpu --epochs 5
+  --device cpu --epochs 5 --likelihood binomial
 
 python sketch-generation/model.py sample \
   --checkpoint /private/tmp/sketch-generation-rehearsal/baseline.pt \
@@ -135,6 +148,10 @@ Create the disposable output directory first. Instructor checkpoints contain
 configuration, CPU weights and numeric training history. Load them through
 `model.load_checkpoint`, which uses PyTorch's weights-only loader. Submission
 files contain generated images and metadata; the server reads them as data.
+
+Use `--likelihood gaussian` to rehearse the squared-error option. Checkpoints
+and submission settings record the likelihood; older checkpoints use Binomial
+by default.
 
 Rehearse all five configurations, generated-image quality, the local validation
 score and its agreement with server scoring against the same references.

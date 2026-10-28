@@ -81,8 +81,9 @@ plt.rcParams.update({"figure.dpi": 110, "axes.spines.top": False,
 
 CHALLENGE_VERSION = "sketch-generation-v1"
 CLASSES = ("apple", "house", "fish", "tree", "umbrella")
-MANIFEST_SHA256 = "26dfd447e5855a5e8bf1bb28a8c5ab3cd8f1108d461010871a7a545b05e4f178"
-RELEASE_BASE = "https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/sketch-generation-v1/sketch-generation/"
+MANIFEST_SHA256 = "56ce85a3b9fe181f486745f4f7d6427f5351e6e253b6af3a06fc71b5babfc2d2"
+RELEASE_REVISION = "61fbd4797fe1be15769e126d60e1250dafc8a184"
+RELEASE_BASE = f"https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/{RELEASE_REVISION}/sketch-generation/"
 ROOT = Path.cwd()
 if not (ROOT / "data/manifest.json").is_file() and (ROOT / "sketch-generation/data/manifest.json").is_file():
     ROOT = ROOT / "sketch-generation"
@@ -212,7 +213,7 @@ def configuration_key(config):
 
 
 def describe_settings(config):
-    return f"latent={config['latent_dim']} · β={config['beta']:g} · epochs={config['epochs']} · lr={config['learning_rate']:g}"
+    return f"{config['likelihood'].capitalize()} · latent={config['latent_dim']} · β={config['beta']:g} · epochs={config['epochs']} · lr={config['learning_rate']:g}"
 
 
 def recorded_run(key):
@@ -253,7 +254,8 @@ def draw_training(record):
     history = record["checkpoint"]["history"]
     epochs = [row["epoch"] for row in history]
     fig, axes = plt.subplots(1, 2, figsize=(10, 3.2), layout="constrained")
-    for key, axis, title in (("reconstruction", axes[0], "Pixel reconstruction"), ("kl", axes[1], "Latent regularization (KL)")):
+    for key, axis, title in (("reconstruction", axes[0], record["config"]["likelihood"].capitalize() + " reconstruction"),
+                             ("kl", axes[1], "Latent regularization (KL)")):
         axis.plot(epochs, [row[key] for row in history], label="Training", color="#2563eb")
         axis.plot(epochs, [row["validation_" + key] for row in history], label="Validation", color="#ea580c")
         axis.set(xlabel="Training epoch", ylabel="Average per drawing", title=title)
@@ -306,16 +308,16 @@ def experiment_table():
     rows = []
     for index, record in enumerate(experiments, start=1):
         config = record["config"]
-        rows.append((index, config["latent_dim"], f"{config['beta']:g}", config["epochs"],
+        rows.append((index, config["likelihood"].capitalize(), config["latent_dim"], f"{config['beta']:g}", config["epochs"],
                      f"{config['learning_rate']:g}", f"{record['validation_score']:.4f}",
                      f"{record['reconstruction_loss']:.2f}", f"{record['kl_loss']:.2f}"))
-    show_table(("Run", "Latent", "β", "Epochs", "Learning rate", "Validation score ↓", "Val. reconstruction", "Val. KL"), rows)
+    show_table(("Run", "Likelihood", "Latent", "β", "Epochs", "Learning rate", "Validation score ↓", "Val. reconstruction", "Val. KL"), rows)
 
 
-def run_experiment(latent_dim=16, beta=1.0, epochs=20, learning_rate=0.001):
+def run_experiment(latent_dim=16, beta=1.0, epochs=20, learning_rate=0.001, likelihood="binomial"):
     global last_result
     try:
-        config = sketch_model.settings(latent_dim, beta, epochs, learning_rate)
+        config = sketch_model.settings(latent_dim, beta, epochs, learning_rate, likelihood=likelihood)
         key = configuration_key(config)
         existing = next((index for index, record in enumerate(experiments) if configuration_key(record["config"]) == key), None)
         if existing is None and len(experiments) >= 100:
@@ -353,7 +355,7 @@ def run_experiment(latent_dim=16, beta=1.0, epochs=20, learning_rate=0.001):
     last_result = record
     refresh_configuration_selector()
     show_metrics([("Validation score", f"{record['validation_score']:.4f}", "Sketch distance; lower is better", "#2563eb"),
-                  ("Validation reconstruction", f"{record['reconstruction_loss']:.2f}", "Pixel loss per held-out drawing", "#ea580c"),
+                  ("Validation reconstruction", f"{record['reconstruction_loss']:.2f}", config["likelihood"].capitalize() + " loss per held-out drawing", "#ea580c"),
                   ("Validation KL", f"{record['kl_loss']:.2f}", "Latent penalty per held-out drawing", "#64748b")],
                  title="Final-epoch model retained", detail=f"{len(experiments)} distinct configurations · no early stopping or final refit")
     draw_training(record)
@@ -650,13 +652,20 @@ draw_grid(examples, title="Human drawings: the same category has many valid appe
 #
 # **Reconstruction loss** rewards reproducing input drawings. **KL regularization** encourages the encoder's latent distributions to stay close to a standard Gaussian. The control **β** sets the strength of that regularization. Both terms sum within one drawing and average over drawings in a batch.
 #
+# The **likelihood** control chooses how the model penalizes pixel errors. Pixel intensities are scaled from 0–255 to 0–1:
+#
+# - **Binomial** uses binary cross-entropy. Each original intensity is a count out of 255; the loss is its Binomial negative log likelihood divided by 255, with constant terms omitted.
+# - **Gaussian** uses half the squared pixel error, corresponding to a Gaussian with fixed variance 1 on the 0–1 intensity scale, with its constant term omitted.
+#
+# These losses have different scales, so the same β gives a different balance with KL. Compare generated drawings using **validation Sketch distance** across likelihoods. Both options display the decoder's mean pixel intensities.
+#
 # For **fresh generation**, sample a new latent code from the standard Gaussian and choose a category. The decoder produces a drawing from that code. Inspect both reconstruction and generation: they ask the model to perform different tasks.
 #
-# The **starting model** uses 16 latent dimensions, β = 1, five training epochs and learning rate 0.001. An **epoch** is one pass through the training drawings.
+# The **starting model** uses the Binomial likelihood, 16 latent dimensions, β = 1, five training epochs and learning rate 0.001. An **epoch** is one pass through the training drawings.
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Train the five-epoch starting model { display-mode: "form" }
-run_experiment(latent_dim=16, beta=1.0, epochs=5, learning_rate=0.001)
+run_experiment(latent_dim=16, beta=1.0, epochs=5, learning_rate=0.001, likelihood="binomial")
 
 # %% [markdown]
 # ### How the score works
@@ -680,7 +689,7 @@ upload_baseline(name, surname, submission_url, access_code)
 # ## 3. Investigate the training choices
 # ![Change one setting, inspect the drawings. Compare training time, latent regularization and latent dimensions.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/sketch-generation/assets/investigations.svg)
 #
-# Keep the learning rate at **0.001** during the main comparisons. Before each run, predict what will change. Compare its public validation score, reconstructions, fresh drawings and training curves with the reference configuration.
+# Keep the likelihood at **Binomial** and the learning rate at **0.001** during the main comparisons. Before each run, predict what will change. Compare its public validation score, reconstructions, fresh drawings and training curves with the reference configuration.
 #
 # | Run | Latent dimensions | β | Epochs | Question |
 # |---|---:|---:|---:|---|
@@ -690,16 +699,19 @@ upload_baseline(name, surname, submission_url, access_code)
 # | Stronger regularization | 16 | 4 | 20 | How does the range of generated drawings change? |
 # | Smaller latent space | 2 | 1 | 20 | Which kinds of variation can the model represent? |
 #
+# For an additional comparison, repeat the twenty-epoch reference configuration with **Gaussian** likelihood. How do the outlines, gray pixels and variety change? Use validation Sketch distance to compare generation across the two loss scales.
+#
 # Each run starts from the same initialization seed and trains for the selected epoch count. Its **final-epoch model** stays in memory. The experiment table retains one entry per distinct configuration. The preview and upload cells use these retained models.
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Choose the settings and train an experiment { display-mode: "form" }
-# @markdown Change one setting at a time for controlled comparisons. Training runs for exactly the chosen number of epochs and retains the final model. Lower validation Sketch distance is better.
+# @markdown Change one setting at a time for controlled comparisons. Binomial uses binary cross-entropy; Gaussian uses half the squared pixel error. Their scales differ, so compare generation using validation Sketch distance. Training retains the final model after exactly the chosen number of epochs.
 latent_dim = 16 # @param [2, 4, 8, 16, 32] {type:"raw"}
 beta = 1.0 # @param [0.0, 0.1, 0.5, 1.0, 2.0, 4.0, 8.0] {type:"raw"}
 epochs = 20 # @param [5, 10, 20, 40] {type:"raw"}
 learning_rate = 0.001 # @param [0.0003, 0.001, 0.003] {type:"raw"}
-run_experiment(latent_dim, beta, epochs, learning_rate)
+likelihood = "binomial" # @param ["binomial", "gaussian"]
+run_experiment(latent_dim, beta, epochs, learning_rate, likelihood)
 
 # %% [markdown]
 # ## 4. Explore variation in latent space

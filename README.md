@@ -34,12 +34,14 @@ the notebook checks their SHA-256 hashes before use. Data downloads reference
 the immutable `network-latency-v1` release tag. Publish a new version when the
 approved data changes, updating the tag reference and checksums together.
 
-Sketch generation uses the immutable `sketch-generation-v1` release tag for
-its public drawings and helper modules. Its manifest pins every artifact hash.
+Sketch generation uses the `sketch-generation-v1` dataset and scoring format.
+Its notebook pins public drawings and helper modules to the immutable Git
+revision recorded in `RELEASE_REVISION`. Its manifest pins every artifact hash.
 The [instructor preparation guide](sketch-generation/instructor/README.md)
 describes dataset selection, evaluator training and private scoring artifacts.
 Complete the local rehearsal and the separate instructor Colab GPU rehearsal
-before publishing this release tag or distributing the activity.
+before publishing the pinned revision or distributing the activity. Preserve
+existing immutable release tags when updating the notebook helpers.
 
 Static banners, step labels and activity cards are SVG images in each
 activity's `assets/` directory. Embed these panels with Markdown image links so

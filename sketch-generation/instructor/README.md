@@ -163,6 +163,9 @@ notebook** dialog and select a GPU runtime. In the Files panel:
    checks used for release downloads.
 4. Run all five suggested configurations, inspect the figures and selection
    controls, and retain the baseline and final JSON exports.
+5. Repeat the twenty-epoch reference configuration with Gaussian likelihood.
+   Check that both likelihoods appear separately in the table, selector and
+   saved submission settings. Compare image quality using Sketch distance.
 
 Record the GPU model, PyTorch version, training times and total activity time.
 Check the two-minute target for a default training run and the 60-minute
@@ -171,8 +174,9 @@ before deployment, retain the JSON files for manual scoring against the
 prepared private references or use an instructor-provided rehearsal endpoint.
 The saved export remains available when an upload fails.
 
-Publish the immutable release tag after the Colab rehearsal passes and
-publication is authorized. Students can then use automatic downloads. Keep
+Publish the notebook's pinned public-file Git revision after the Colab
+rehearsal passes and publication is authorized. Preserve existing immutable
+release tags. Students can then use automatic downloads. Keep
 private reference archives and instructor preparation data out of Colab's
 student workspace.
 
