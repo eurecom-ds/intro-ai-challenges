@@ -1,0 +1,2 @@
+# Dataset fingerprints cover the supplied CSV bytes, including CRLF endings.
+*.csv -text whitespace=cr-at-eol
