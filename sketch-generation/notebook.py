@@ -46,6 +46,8 @@
 # ## Setup
 # In Colab, choose **Runtime → Change runtime type → T4 GPU** or another available GPU, then connect. Run the next **three setup cells** in order. The public files download automatically and are checked against their release hashes.
 #
+# After opening an updated notebook, rerun all three setup cells to load its current model helper. Setup refreshes outdated cached files after checking the downloaded replacements.
+#
 # Rerunning Setup 3 clears the experiment table, retained models and current selection. Keep this runtime connected while completing the activity.
 
 # %% cellView="form" jupyter={"source_hidden": true}
@@ -91,10 +93,10 @@ if not (ROOT / "data/manifest.json").is_file() and (ROOT / "sketch-generation/da
 
 def checked_file(relative, expected_hash, expected_size=None):
     destination = ROOT / relative
-    if destination.is_file():
-        contents = destination.read_bytes()
-    else:
-        print("Downloading", relative, "…")
+    contents = destination.read_bytes() if destination.is_file() else None
+    if (contents is None or (expected_size is not None and len(contents) != expected_size)
+            or hashlib.sha256(contents).hexdigest() != expected_hash):
+        print("Refreshing" if contents is not None else "Downloading", relative, "…")
         try:
             with urllib.request.urlopen(RELEASE_BASE + relative, timeout=60) as response:
                 limit = expected_size + 1 if expected_size is not None else 100_001
@@ -107,8 +109,6 @@ def checked_file(relative, expected_hash, expected_size=None):
             raise ValueError("The release hash differs for " + relative + ". Restore the approved file before continuing.")
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_bytes(contents)
-    if (expected_size is not None and len(contents) != expected_size) or hashlib.sha256(contents).hexdigest() != expected_hash:
-        raise ValueError("The release hash differs for " + relative + ". Restore the approved file before continuing.")
     return destination
 
 
@@ -317,6 +317,8 @@ def experiment_table():
 def run_experiment(latent_dim=16, beta=1.0, epochs=20, learning_rate=0.001, likelihood="binomial"):
     global last_result
     try:
+        if not hasattr(sketch_model, "LIKELIHOODS"):
+            raise ValueError("The runtime has an older model helper. Rerun Setup 1, Setup 2 and Setup 3, then train the starting model again.")
         config = sketch_model.settings(latent_dim, beta, epochs, learning_rate, likelihood=likelihood)
         key = configuration_key(config)
         existing = next((index for index, record in enumerate(experiments) if configuration_key(record["config"]) == key), None)
@@ -707,7 +709,7 @@ upload_baseline(name, surname, submission_url, access_code)
 # @title Choose the settings and train an experiment { display-mode: "form" }
 # @markdown Change one setting at a time for controlled comparisons. Binomial uses binary cross-entropy; Gaussian uses half the squared pixel error. Their scales differ, so compare generation using validation Sketch distance. Training retains the final model after exactly the chosen number of epochs.
 latent_dim = 16 # @param [2, 4, 8, 16, 32] {type:"raw"}
-beta = 1.0 # @param [0.0, 0.1, 0.5, 1.0, 2.0, 4.0, 8.0] {type:"raw"}
+beta = 1 # @param [0, 0.1, 0.5, 1, 2, 4, 8] {type:"raw"}
 epochs = 20 # @param [5, 10, 20, 40] {type:"raw"}
 learning_rate = 0.001 # @param [0.0003, 0.001, 0.003] {type:"raw"}
 likelihood = "binomial" # @param ["binomial", "gaussian"]

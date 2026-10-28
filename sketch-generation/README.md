@@ -24,6 +24,9 @@ The notebook requires a GPU for student training. An unavailable GPU produces
 instructions for changing the runtime. Setup 3 clears the local experiment
 table, retained checkpoints and current selection.
 
+After opening an updated notebook, rerun all three setup cells. Setup refreshes
+outdated cached files only after verifying the downloaded replacements.
+
 ## Five controlled experiments
 
 The encoder maps a drawing and its category to a distribution over latent
