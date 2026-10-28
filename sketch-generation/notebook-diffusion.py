@@ -54,6 +54,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -86,31 +87,40 @@ EXPERIMENT_VERSION = "sketch-diffusion-experimental-v1"
 MANIFEST_SHA256 = "26dfd447e5855a5e8bf1bb28a8c5ab3cd8f1108d461010871a7a545b05e4f178"
 DIFFUSION_MODEL_SHA256 = "abb8314dede81977a2b04c4f645e15bc7f5ea4aa8a247b0f2a23fa91de4d3f97"
 RELEASE_BASE = "https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/sketch-generation-v1/sketch-generation/"
-HELPER_BASE = "https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/sketch-generation/"
+HELPER_REVISION = "e3d1b7c4412aca7defda73c09285f889d283a2fc"
+HELPER_BASE = "https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/" + HELPER_REVISION + "/sketch-generation/"
+HELPER_CACHE = Path(tempfile.gettempdir()) / "intro-ai-sketch-diffusion" / DIFFUSION_MODEL_SHA256
 ROOT = Path.cwd()
 if not (ROOT / "data/manifest.json").is_file() and (ROOT / "sketch-generation/data/manifest.json").is_file():
     ROOT = ROOT / "sketch-generation"
 
 
-def checked_file(relative, expected_hash, expected_size=None, *, base_url=RELEASE_BASE):
-    destination = ROOT / relative
+def checked_file(relative, expected_hash, expected_size=None, *, base_url=RELEASE_BASE,
+                 cache_root=None, refresh_mismatch=False):
+    destination = (ROOT if cache_root is None else cache_root) / relative
+
+    def matches(contents):
+        return ((expected_size is None or len(contents) == expected_size)
+                and hashlib.sha256(contents).hexdigest() == expected_hash)
+
     if destination.is_file():
         contents = destination.read_bytes()
+        if matches(contents):
+            return destination
+        if not refresh_mismatch:
+            raise ValueError("Unexpected release contents for " + relative + ". Restore the matching public file.")
+        print("Refreshing cached", relative)
     else:
         print("Downloading", relative)
-        try:
-            with urllib.request.urlopen(base_url + relative, timeout=60) as response:
-                contents = response.read(expected_size + 1 if expected_size is not None else 100_001)
-        except (OSError, urllib.error.URLError) as error:
-            raise RuntimeError("Could not download " + relative + ". Check the published files or upload the matching public file through Colab's Files panel.") from error
-        if ((expected_size is not None and len(contents) != expected_size)
-                or hashlib.sha256(contents).hexdigest() != expected_hash):
-            raise ValueError("Unexpected release contents for " + relative + ". Restore the matching public file.")
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_bytes(contents)
-    if ((expected_size is not None and len(contents) != expected_size)
-            or hashlib.sha256(contents).hexdigest() != expected_hash):
-        raise ValueError("Unexpected release contents for " + relative + ". Restore the matching public file.")
+    try:
+        with urllib.request.urlopen(base_url + relative, timeout=60) as response:
+            contents = response.read(expected_size + 1 if expected_size is not None else 100_001)
+    except (OSError, urllib.error.URLError) as error:
+        raise RuntimeError("Could not download " + relative + ". Check your connection and rerun Setup 2. You can also upload the matching public files through Colab's Files panel.") from error
+    if not matches(contents):
+        raise ValueError("Downloaded " + relative + " uses another version. Reopen the latest notebook and rerun Setup 1 and Setup 2.")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_bytes(contents)
     return destination
 
 
@@ -134,7 +144,12 @@ paths = {}
 for key in ("train", "validation", "evaluator", "evaluator_module"):
     entry = manifest["files"][key]
     paths[key] = checked_file(entry["path"], entry["sha256"], entry["size_bytes"])
-model_path = checked_file("diffusion_model.py", DIFFUSION_MODEL_SHA256, base_url=HELPER_BASE)
+local_model = ROOT / "diffusion_model.py"
+if local_model.is_file() and hashlib.sha256(local_model.read_bytes()).hexdigest() == DIFFUSION_MODEL_SHA256:
+    model_path = local_model
+else:
+    model_path = checked_file("diffusion_model.py", DIFFUSION_MODEL_SHA256, base_url=HELPER_BASE,
+                              cache_root=HELPER_CACHE, refresh_mismatch=True)
 diffusion_model = load_module("sketch_challenge_diffusion", model_path)
 sketch_evaluation = load_module("sketch_challenge_evaluator", paths["evaluator_module"])
 with np.load(paths["train"], allow_pickle=False) as archive:
@@ -390,6 +405,7 @@ def export_selected():
         raise ValueError("The recorded batch must contain 200 images for each category.")
     metadata = {"experiment_version": EXPERIMENT_VERSION, "model_type": "class-conditional-pixel-diffusion",
                 "diffusers_version": DIFFUSERS_VERSION, "model_helper_sha256": DIFFUSION_MODEL_SHA256,
+                "model_helper_revision": HELPER_REVISION,
                 "dataset_version": DATA_VERSION, "dataset_fingerprint": manifest["dataset_fingerprint"],
                 "evaluator_fingerprint": evaluator.fingerprint, "config": record["config"],
                 "sampling": {"seed": 2026, "samples_per_class": 200, "sampler": "DDIM", "eta": 0.0},

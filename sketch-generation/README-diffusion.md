@@ -24,10 +24,17 @@ VAE notebook and helper remain available.
 
 Publish the new notebook and `diffusion_model.py` together before using remote
 downloads in Colab. Until then, upload the local notebook and matching helper
-through Colab's Files panel. The helper is fetched from the repository's `main`
-branch and checked against a SHA-256 hash pinned in the notebook. Existing data
-and evaluator downloads retain the immutable `sketch-generation-v1` release.
-From a local checkout, setup finds the files in `sketch-generation/`.
+through Colab's Files panel. The notebook pins both the helper's immutable Git
+commit and its SHA-256 hash. A matching local helper is reused; downloads use a
+temporary cache named by the hash. Setup refreshes an invalid helper cache only
+after validating the downloaded contents. Older local helpers remain intact.
+Existing data and evaluator downloads retain the immutable
+`sketch-generation-v1` release. From a local checkout, setup finds the files in
+`sketch-generation/`.
+
+After updating the activity, reopen its latest notebook and rerun Setup 1 and
+Setup 2. Each helper version has a separate cache, so previously downloaded
+code can stay on the runtime.
 
 GPU timings and image quality require a fresh Colab instructor rehearsal before
 setting a classroom time budget. CPU is supported explicitly for instructor
@@ -97,9 +104,10 @@ without further fitting or generation.
 - `notebook-diffusion.py` is the editable Jupytext source;
   `notebook-diffusion.ipynb` is its unexecuted Colab version.
 - `diffusion_model.py` supplies the model, training, sampling, trajectory and
-  weights-only checkpoint helpers. Update `DIFFUSION_MODEL_SHA256` in the
-  notebook after changing this helper, then regenerate the notebook using the
-  repository README's pinned Jupytext command.
+  weights-only checkpoint helpers. Commit helper changes, then pin that full
+  commit as `HELPER_REVISION` and update `DIFFUSION_MODEL_SHA256` in the notebook.
+  Regenerate the notebook using the repository README's pinned Jupytext command
+  and publish both commits together. Keep both revisions available in Git.
 - Preserve the VAE notebook, helper, manifest, public data and evaluator when
   working on the diffusion variant.
 
