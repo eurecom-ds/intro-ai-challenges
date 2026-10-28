@@ -38,9 +38,23 @@ checks; the student notebook requires a CUDA GPU.
 The randomly initialized Diffusers `UNet2DModel` predicts the Gaussian noise
 added to a drawing. Inputs include the noisy image, timestep and class label.
 The three U-Net widths are `(c, 2c, 4c)`, with three resolution stages and no
-attention. Training uses AdamW, batch size 128 and pixel-averaged noise MSE.
+attention. Training uses AdamW and pixel-averaged noise MSE.
 The DDPM training scheduler has 1,000 cosine-scheduled noise levels. The DDIM
 sampler uses deterministic updates (`eta=0`) and starts at timestep 999.
+
+Before the first experiment, CUDA calibration probes two forward/backward and
+AdamW steps on disposable weights for the wider network, measuring memory with
+optimizer state already allocated. It grows batches from
+1,024, handles memory exhaustion by trying smaller batches, then refines the
+memory limit in increments of 128 drawings. Calibration reserves 10% of free
+GPU memory for working space. Both widths use the largest tested fitting batch
+throughout that experiment table. Setup 3 resets this selection. CPU instructor
+rehearsals use at most 128 drawings per batch. Validation and sampling retain
+separate batches of 128.
+
+The experiment table, checkpoints and export record the actual training batch
+and total optimizer steps. Larger batches give fewer weight updates per epoch;
+evaluate drawing quality again when changing the training batch.
 
 | Run | First width c | Epochs | Generation steps | Learning rate |
 | --- | ---: | ---: | ---: | ---: |
@@ -73,7 +87,8 @@ score and preserves subsequent choices. Download saves
 `sketch-diffusion_result.npz`, containing `images`, `classes` and
 `metadata_json`. Metadata records model settings, helper and image hashes,
 dataset/evaluator fingerprints, training history, sampler configuration and
-public results. Read the archive with `np.load(path, allow_pickle=False)` and
+public results, plus training batch size and update count. Read the archive
+with `np.load(path, allow_pickle=False)` and
 parse `metadata_json.item()` with `json.loads`. Export uses retained images
 without further fitting or generation.
 

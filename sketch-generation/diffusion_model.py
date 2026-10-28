@@ -7,6 +7,7 @@ Students use a Colab GPU; instructors may pass ``device="cpu"`` for rehearsals.
 
 import argparse
 from contextlib import contextmanager
+import gc
 import json
 import os
 from pathlib import Path
@@ -28,7 +29,8 @@ MODEL_CHANNELS = (16, 32)
 EPOCHS = (1, 5, 10, 20)
 INFERENCE_STEPS = (10, 25, 50, 100)
 LEARNING_RATES = (0.0001, 0.0003, 0.001)
-BATCH_SIZE = 128
+CPU_BATCH_SIZE = 128
+INFERENCE_BATCH_SIZE = 128
 MODEL_SEED = 42
 SAMPLE_SEED = 2026
 TRAIN_TIMESTEPS = 1000
@@ -127,6 +129,84 @@ def _scheduler():
                          clip_sample=True)
 
 
+def _largest_fitting_batch(count, fits):
+    """Grow from 1,024, then refine the successful/failed bracket by 128."""
+    candidate = min(1024, count)
+    while not fits(candidate):
+        if candidate == 1:
+            raise RuntimeError("A single training drawing exceeds available GPU memory. Free GPU memory and rerun setup.")
+        candidate = max(1, candidate // 2)
+    lower = candidate
+    while lower < count:
+        upper = min(2 * lower, count)
+        if not fits(upper):
+            break
+        lower = upper
+    else:
+        return lower
+    stride = 128 if lower >= 128 else 1
+    while upper - lower > stride:
+        candidate = ((lower + upper) // (2 * stride)) * stride
+        if fits(candidate):
+            lower = candidate
+        else:
+            upper = candidate
+    return lower
+
+
+def _probe_training_batch(batch_size, device):
+    """Discard two steps, measuring activations with AdamW state allocated."""
+    network = _network(max(MODEL_CHANNELS)).to(device).train()
+    optimizer = torch.optim.AdamW(network.parameters(), lr=0.0003, weight_decay=0.0001)
+    images = torch.randn((batch_size, 1, 28, 28), device=device)
+    labels = torch.arange(batch_size, device=device) % len(CLASSES)
+    times = torch.full((batch_size,), TRAIN_TIMESTEPS - 1, device=device, dtype=torch.long)
+    for _ in range(2):
+        optimizer.zero_grad(set_to_none=True)
+        predicted = network(images, times, class_labels=labels).sample
+        F.mse_loss(predicted, images).backward()
+        nn.utils.clip_grad_norm_(network.parameters(), 1.0, error_if_nonfinite=True)
+        optimizer.step()
+    torch.cuda.synchronize(device)
+
+
+def select_training_batch_size(count, *, device="cuda", progress=None):
+    """Find a shared training batch for both widths, reserving 10% of free VRAM.
+
+    Probe two forward/backward steps with AdamW state on disposable weights.
+    Search in 128-image increments after bracketing the memory limit. CPU
+    instructor rehearsals use at most 128 images. Probe randomness is isolated
+    from model training. The largest possible batch is the complete dataset.
+    """
+    if isinstance(count, bool) or not isinstance(count, int) or count < 1:
+        raise ValueError("Supply a positive training drawing count.")
+    device = _device(device)
+    if device.type == "cpu":
+        return min(CPU_BATCH_SIZE, count)
+    torch.cuda.empty_cache()
+    free_bytes, _ = torch.cuda.mem_get_info(device)
+    reserve = torch.empty(int(free_bytes * 0.1), dtype=torch.uint8, device=device)
+
+    def fits(batch_size):
+        try:
+            _probe_training_batch(batch_size, device)
+            success = True
+        except torch.cuda.OutOfMemoryError:
+            success = False
+        gc.collect()
+        torch.cuda.empty_cache()
+        if progress is not None:
+            progress(batch_size, success)
+        return success
+
+    try:
+        with _deterministic(device):
+            return _largest_fitting_batch(count, fits)
+    finally:
+        del reserve
+        torch.cuda.empty_cache()
+
+
 def _tensor_images(images, device):
     return torch.from_numpy(_images(images).copy()).unsqueeze(1).to(device=device, dtype=torch.float32).div_(127.5).sub_(1.0)
 
@@ -140,18 +220,18 @@ def _pixels(images):
 def _validation_mse(network, scheduler, images, labels, noise, timesteps):
     total = torch.zeros((), device=images.device)
     with torch.no_grad():
-        for start in range(0, len(images), BATCH_SIZE):
-            batch = images[start:start+BATCH_SIZE]
-            target = noise[start:start+BATCH_SIZE]
-            times = timesteps[start:start+BATCH_SIZE]
+        for start in range(0, len(images), INFERENCE_BATCH_SIZE):
+            batch = images[start:start+INFERENCE_BATCH_SIZE]
+            target = noise[start:start+INFERENCE_BATCH_SIZE]
+            times = timesteps[start:start+INFERENCE_BATCH_SIZE]
             noisy = scheduler.add_noise(batch, target, times)
-            predicted = network(noisy, times, class_labels=labels[start:start+BATCH_SIZE]).sample
+            predicted = network(noisy, times, class_labels=labels[start:start+INFERENCE_BATCH_SIZE]).sample
             total += F.mse_loss(predicted, target) * len(batch)
     return float((total / len(images)).cpu())
 
 
 def train_diffusion(images, labels, config=None, *, device="cuda", progress=None,
-                    validation_images=None, validation_labels=None):
+                    validation_images=None, validation_labels=None, batch_size=None):
     """Train from random weights for exactly the selected number of epochs.
 
     Validation uses fixed diagnostic noise and timesteps. The final epoch
@@ -164,6 +244,11 @@ def train_diffusion(images, labels, config=None, *, device="cuda", progress=None
     device = _device(device)
     if (validation_images is None) != (validation_labels is None):
         raise ValueError("Supply validation images and labels together.")
+    if batch_size is None:
+        batch_size = select_training_batch_size(len(images), device=device)
+    if isinstance(batch_size, bool) or not isinstance(batch_size, int) or batch_size < 1:
+        raise ValueError("Choose a positive integer training batch size.")
+    batch_size = min(batch_size, len(images))
     with _deterministic(device):
         network = _network(config["model_channels"]).to(device)
         scheduler = _scheduler()
@@ -189,7 +274,7 @@ def train_diffusion(images, labels, config=None, *, device="cuda", progress=None
             network.train()
             total = torch.zeros((), device=device)
             order = torch.randperm(len(x), generator=order_rng).to(device)
-            for indices in order.split(BATCH_SIZE):
+            for indices in order.split(batch_size):
                 batch, condition = x[indices], y[indices]
                 noise = torch.randn(batch.shape, generator=noise_rng, device=device)
                 times = torch.randint(TRAIN_TIMESTEPS, (len(batch),), generator=time_rng, device=device)
@@ -203,7 +288,7 @@ def train_diffusion(images, labels, config=None, *, device="cuda", progress=None
                 nn.utils.clip_grad_norm_(network.parameters(), 1.0, error_if_nonfinite=True)
                 optimizer.step()
                 total += loss.detach() * len(batch)
-            record = {"epoch": epoch, "noise_mse": float((total / len(x)).cpu())}
+            record = {"epoch": epoch, "noise_mse": float((total / len(x)).cpu()), "batch_size": batch_size}
             if xv is not None:
                 network.eval()
                 value = _validation_mse(network, scheduler, xv, yv, validation_noise, validation_times)
@@ -222,7 +307,9 @@ def train_diffusion(images, labels, config=None, *, device="cuda", progress=None
         training_seconds = time.perf_counter() - start_time
     return {"model_type": MODEL_TYPE, "diffusers_version": diffusers.__version__,
             "config": config, "state_dict": state, "history": history,
-            "training_count": len(images), "training_seconds": training_seconds}
+            "training_count": len(images), "training_seconds": training_seconds,
+            "batch_size": batch_size,
+            "optimizer_steps": config["epochs"] * ((len(images) + batch_size - 1) // batch_size)}
 
 
 def checkpoint_network(checkpoint, *, device="cpu"):
@@ -272,9 +359,9 @@ def generate_samples(checkpoint, *, device="cuda", seed=SAMPLE_SEED, samples_per
     labels = torch.arange(len(CLASSES)).repeat_interleave(samples_per_class)
     pixels = []
     with _deterministic(device), torch.no_grad():
-        for start in range(0, len(noise), BATCH_SIZE):
-            final, _ = _sample(network, noise[start:start+BATCH_SIZE].to(device),
-                               labels[start:start+BATCH_SIZE].to(device),
+        for start in range(0, len(noise), INFERENCE_BATCH_SIZE):
+            final, _ = _sample(network, noise[start:start+INFERENCE_BATCH_SIZE].to(device),
+                               labels[start:start+INFERENCE_BATCH_SIZE].to(device),
                                checkpoint["config"]["inference_steps"])
             pixels.append(_pixels(final))
     return np.concatenate(pixels).reshape(len(CLASSES), samples_per_class, 28, 28)
@@ -356,7 +443,9 @@ def _main():
         checkpoint = train_diffusion(images, labels, config, device=args.device,
                                      progress=lambda row: print(json.dumps(row), flush=True), **validation)
         save_checkpoint(checkpoint, args.output)
-        print(json.dumps({"config": config, "training_seconds": checkpoint["training_seconds"]}), flush=True)
+        print(json.dumps({"config": config, "batch_size": checkpoint["batch_size"],
+                          "optimizer_steps": checkpoint["optimizer_steps"],
+                          "training_seconds": checkpoint["training_seconds"]}), flush=True)
     else:
         checkpoint = load_checkpoint(args.checkpoint)
         if args.inference_steps is not None:

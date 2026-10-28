@@ -84,7 +84,7 @@ CLASSES = ("apple", "house", "fish", "tree", "umbrella")
 DATA_VERSION = "sketch-generation-v1"
 EXPERIMENT_VERSION = "sketch-diffusion-experimental-v1"
 MANIFEST_SHA256 = "26dfd447e5855a5e8bf1bb28a8c5ab3cd8f1108d461010871a7a545b05e4f178"
-DIFFUSION_MODEL_SHA256 = "3326521bf1a8decf61b2bb5309aea6940b04aab39f5a8fe0907994adef5585ed"
+DIFFUSION_MODEL_SHA256 = "abb8314dede81977a2b04c4f645e15bc7f5ea4aa8a247b0f2a23fa91de4d3f97"
 RELEASE_BASE = "https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/sketch-generation-v1/sketch-generation/"
 HELPER_BASE = "https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/sketch-generation/"
 ROOT = Path.cwd()
@@ -163,6 +163,7 @@ if globals().get("configuration_selector") is not None:
 configuration_selector = None
 experiments = []
 last_result = None
+training_batch_size = None
 HTML_FONT = "font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"
 
 
@@ -220,11 +221,12 @@ def draw_training(record):
 
 
 def experiment_table():
-    headers = ("Run", "Width", "Epochs", "Generation steps", "Learning rate", "Validation score ↓", "Val. noise MSE", "Sampling seconds")
+    headers = ("Run", "Width", "Epochs", "Batch", "Weight updates", "Generation steps", "Learning rate", "Validation score ↓", "Val. noise MSE", "Sampling seconds")
     rows = []
     for index, record in enumerate(experiments, start=1):
         config = record["config"]
-        rows.append((index, config["model_channels"], config["epochs"], config["inference_steps"],
+        rows.append((index, config["model_channels"], config["epochs"], record["checkpoint"]["batch_size"],
+                     record["checkpoint"]["optimizer_steps"], config["inference_steps"],
                      f"{config['learning_rate']:g}", f"{record['validation_score']:.4f}",
                      f"{record['noise_mse']:.4f}", f"{record['sampling_seconds']:.1f}"))
     heading = ''.join('<th style="padding:10px;text-align:left;background:#eff4fa;">' + html.escape(str(value)) + '</th>' for value in headers)
@@ -281,7 +283,7 @@ def preview_record():
 
 
 def run_experiment(model_channels=16, epochs=20, inference_steps=25, learning_rate=0.0003):
-    global last_result
+    global last_result, training_batch_size
     try:
         config = diffusion_model.settings(model_channels, epochs, inference_steps, learning_rate)
         existing = recorded_run(configuration_key(config))
@@ -297,6 +299,12 @@ def run_experiment(model_channels=16, epochs=20, inference_steps=25, learning_ra
             checkpoint = {**matching["checkpoint"], "config": config}
             print("Reusing trained weights and changing only the generation step count.")
         else:
+            if training_batch_size is None:
+                print("Finding a training batch that fits both network widths…")
+                training_batch_size = diffusion_model.select_training_batch_size(
+                    len(train_images), device=DEVICE,
+                    progress=lambda size, fits: print(f"Batch {size:,}: " + ("fits" if fits else "trying a smaller batch")))
+                print(f"Training batch: {training_batch_size:,} drawings. This batch stays fixed across experiments.")
             print("Training", describe_settings(config))
             progress = display(HTML("Preparing the first epoch…"), display_id=True)
 
@@ -306,7 +314,7 @@ def run_experiment(model_channels=16, epochs=20, inference_steps=25, learning_ra
 
             checkpoint = diffusion_model.train_diffusion(train_images, train_labels, config, device=DEVICE,
                                                           validation_images=validation_images, validation_labels=validation_labels,
-                                                          progress=update)
+                                                          progress=update, batch_size=training_batch_size)
         if DEVICE == "cuda":
             torch.cuda.synchronize()
         start = time.perf_counter()
@@ -331,7 +339,7 @@ def run_experiment(model_channels=16, epochs=20, inference_steps=25, learning_ra
     experiments.append(record)
     last_result = record
     refresh_configuration_selector()
-    show_notice("Result retained", f"Validation Sketch distance: {record['validation_score']:.4f}. Sampling: {sampling_seconds:.1f} seconds. The final-epoch weights and scored drawings are saved in memory.")
+    show_notice("Result retained", f"Validation Sketch distance: {record['validation_score']:.4f}. Training batch: {checkpoint['batch_size']:,}. Weight updates: {checkpoint['optimizer_steps']:,}. Sampling: {sampling_seconds:.1f} seconds. The final-epoch weights and scored drawings are saved in memory.")
     draw_training(record)
     draw_grid(samples, title="New drawings generated from random pixel noise, grouped by the requested category")
     experiment_table()
@@ -387,6 +395,8 @@ def export_selected():
                 "sampling": {"seed": 2026, "samples_per_class": 200, "sampler": "DDIM", "eta": 0.0},
                 "pixel_convention": "0=background;255=ink", "validation_result": record["validation_result"],
                 "training_history": record["checkpoint"]["history"], "sampling_seconds": record["sampling_seconds"],
+                "training_batch_size": record["checkpoint"]["batch_size"],
+                "optimizer_steps": record["checkpoint"]["optimizer_steps"],
                 "images_sha256": hashlib.sha256(samples.tobytes(order="C")).hexdigest()}
     destination = ROOT / "sketch-diffusion_result.npz"
     np.savez_compressed(destination, images=samples, classes=np.array(CLASSES),
@@ -425,6 +435,8 @@ draw_grid(noisy, title="The same fish drawings with increasing noise", categorie
 # For **generation**, begin with Gaussian pixel noise and a category. A **DDIM sampler** repeatedly uses the network's prediction to update the image toward a drawing. Here it uses deterministic updates once the initial noise is fixed. Training uses 1,000 possible noise levels; generation visits a chosen subset of those levels.
 #
 # The **starting model** uses U-Net channel widths **16, 32 and 64**, five training epochs, learning rate **0.0003**, and **25 generation steps**. The width control sets the first of these three widths; later widths are twice and four times that value.
+#
+# Before the first run, the notebook finds a large training batch that fits the GPU and keeps it fixed for both network widths. The table records the batch size and number of weight updates. Larger batches produce fewer updates per epoch, so compare results using the same runtime and batch setting.
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Train the five-epoch diffusion starting model { display-mode: "form" }
