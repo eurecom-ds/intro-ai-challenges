@@ -24,6 +24,10 @@ before running it, then compare the result with your prediction. Keep the
 training/validation split fixed during controlled comparisons. The default
 split uses 60% of the 1,000 labelled frames for training and 40% for validation.
 
+For the neural network, choose `hidden_layers` from 1 to 4 (default 1).
+`hidden_units` sets the width of each hidden layer. Keep the other settings
+fixed when comparing depths.
+
 Completion requires at least five distinct configurations: the baseline,
 a comparison that changes only polynomial degree, a comparison that changes
 only regularization at a positive degree, and a neural-network configuration.

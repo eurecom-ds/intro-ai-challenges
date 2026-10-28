@@ -85,7 +85,7 @@ MAX_INPUT_FEATURES = 20
 MAX_POLYNOMIAL_FEATURES = 2500
 MODEL_FIELDS = frozenset({"model_family", "target_transform", "degree", "regularization",
                           "loss", "huber_delta",
-                          "hidden_units", "learning_rate", "epochs", "weight_decay"})
+                          "hidden_units", "hidden_layers", "learning_rate", "epochs", "weight_decay"})
 
 
 def _number(value, name, *, maximum=None, positive=False):
@@ -103,7 +103,7 @@ def _number(value, name, *, maximum=None, positive=False):
 
 def settings(degree=0, regularization=0.0, *, model_family="polynomial", target_transform="raw",
              loss="squared", huber_delta=1.0,
-             hidden_units=32, learning_rate=0.01, epochs=1000, weight_decay=0.001):
+             hidden_units=32, hidden_layers=1, learning_rate=0.01, epochs=1000, weight_decay=0.001):
     """Validate active controls; inactive controls do not identify another model."""
     if model_family not in ("polynomial", "neural_network"):
         raise ValueError("Set model_family to 'polynomial' or 'neural_network'.")
@@ -113,9 +113,11 @@ def settings(degree=0, regularization=0.0, *, model_family="polynomial", target_
     if model_family == "neural_network":
         if isinstance(hidden_units, (bool, np.bool_)) or not isinstance(hidden_units, (int, np.integer)) or not 4 <= hidden_units <= 128:
             raise ValueError("Set hidden_units to a whole number from 4 to 128.")
+        if isinstance(hidden_layers, (bool, np.bool_)) or not isinstance(hidden_layers, (int, np.integer)) or not 1 <= hidden_layers <= 4:
+            raise ValueError("Set hidden_layers to a whole number from 1 to 4.")
         if isinstance(epochs, (bool, np.bool_)) or not isinstance(epochs, (int, np.integer)) or not 1 <= epochs <= 5000:
             raise ValueError("Set epochs to a whole number from 1 to 5000.")
-        config.update(hidden_units=int(hidden_units),
+        config.update(hidden_units=int(hidden_units), hidden_layers=int(hidden_layers),
                       learning_rate=_number(learning_rate, "learning_rate", maximum=1, positive=True),
                       epochs=int(epochs),
                       weight_decay=_number(weight_decay, "weight_decay", maximum=10))
@@ -144,7 +146,7 @@ def configuration_key(record):
 def describe_settings(config):
     config = _record_settings(config)
     if config["model_family"] == "neural_network":
-        return (f"Neural network | hidden={config['hidden_units']} | epochs={config['epochs']} | "
+        return (f"Neural network | layers={config['hidden_layers']} | hidden={config['hidden_units']} | epochs={config['epochs']} | "
                 f"η={config['learning_rate']:g} | weight decay={config['weight_decay']:g} | "
                 f"{config['target_transform']}")
     loss_label = "squared" if config["loss"] == "squared" else f"Huber δ={config['huber_delta']:g}"
@@ -275,11 +277,11 @@ def _huber_fit(design, target, regularization, delta):
 
 
 def _neural_fit(model, x, target):
-    """Fit one ReLU hidden layer using only the supplied training examples.
+    """Fit the selected ReLU hidden layers using the supplied training examples.
 
     Features and transformed targets are standardized on these rows. Adam
     minimizes mean squared residual + weight_decay * sum(weight matrices²);
-    neither bias is penalized. Training runs for exactly the selected number
+    biases are unpenalized. Training runs for exactly the selected number
     of full-batch updates, without consulting validation examples or labels.
     """
     try:
@@ -304,10 +306,15 @@ def _neural_fit(model, x, target):
         # for every rerun of a configuration, with no GPU or minibatch randomness.
         with torch.random.fork_rng(devices=[]):
             torch.random.default_generator.manual_seed(42)
-            network = torch.nn.Sequential(
-                torch.nn.Linear(x.shape[1], config["hidden_units"], dtype=torch.float64, device="cpu"),
-                torch.nn.ReLU(),
-                torch.nn.Linear(config["hidden_units"], 1, dtype=torch.float64, device="cpu"))
+            modules = []
+            input_units = x.shape[1]
+            for _ in range(config["hidden_layers"]):
+                modules.extend((torch.nn.Linear(input_units, config["hidden_units"], dtype=torch.float64, device="cpu"),
+                                torch.nn.ReLU()))
+                input_units = config["hidden_units"]
+            modules.append(torch.nn.Linear(input_units, 1, dtype=torch.float64, device="cpu"))
+            network = torch.nn.Sequential(*modules)
+            linear_layers = [layer for layer in network if isinstance(layer, torch.nn.Linear)]
             input_tensor = torch.as_tensor(inputs, dtype=torch.float64, device="cpu")
             target_tensor = torch.as_tensor(targets, dtype=torch.float64, device="cpu")
             optimizer = torch.optim.Adam(network.parameters(), lr=config["learning_rate"], weight_decay=0)
@@ -316,7 +323,7 @@ def _neural_fit(model, x, target):
                 optimizer.zero_grad(set_to_none=True)
                 residual = network(input_tensor).squeeze(-1) - target_tensor
                 mse = residual.square().mean()
-                penalty = network[0].weight.square().sum() + network[2].weight.square().sum()
+                penalty = sum(layer.weight.square().sum() for layer in linear_layers)
                 objective = mse + config["weight_decay"] * penalty
                 if not torch.isfinite(objective).item():
                     raise ValueError("Neural network training became non-finite. Reduce the learning rate or inspect the features.")
@@ -325,15 +332,16 @@ def _neural_fit(model, x, target):
                 optimizer.step()
             with torch.no_grad():
                 history.append(float((network(input_tensor).squeeze(-1) - target_tensor).square().mean()))
-            arrays = {"hidden_weight": network[0].weight.detach().numpy().copy(),
-                      "hidden_bias": network[0].bias.detach().numpy().copy(),
-                      "output_weight": network[2].weight.detach().numpy().copy(),
-                      "output_bias": network[2].bias.detach().numpy().copy()}
+            layers = [{"weight": layer.weight.detach().numpy().copy(),
+                       "bias": layer.bias.detach().numpy().copy()} for layer in linear_layers[:-1]]
+            arrays = {"output_weight": linear_layers[-1].weight.detach().numpy().copy(),
+                      "output_bias": linear_layers[-1].bias.detach().numpy().copy()}
     finally:
         torch.set_num_threads(previous_threads)
-    if not all(np.isfinite(value).all() for value in arrays.values()) or not np.isfinite(history).all():
+    weights = [value for layer in layers for value in layer.values()] + list(arrays.values())
+    if not all(np.isfinite(value).all() for value in weights) or not np.isfinite(history).all():
         raise ValueError("Neural network training produced non-finite weights. Reduce the learning rate or inspect the features.")
-    model.update(**arrays, target_mean=target_mean, target_scale=target_scale,
+    model.update(**arrays, layers=layers, target_mean=target_mean, target_scale=target_scale,
                  iterations=config["epochs"], training_history=history)
     return model
 
@@ -387,8 +395,9 @@ def _neural_predict(model, x):
     """Use saved NumPy weights; inference does not require importing PyTorch."""
     if x.shape[1] != len(model["center"]):
         raise ValueError("Prediction features must have the same columns as the training representation.")
-    standardized = (x - model["center"]) / model["scale"]
-    hidden = np.maximum(0, standardized @ model["hidden_weight"].T + model["hidden_bias"])
+    hidden = (x - model["center"]) / model["scale"]
+    for layer in model["layers"]:
+        hidden = np.maximum(0, hidden @ layer["weight"].T + layer["bias"])
     transformed = (hidden @ model["output_weight"].T + model["output_bias"]).ravel()
     return transformed * model["target_scale"] + model["target_mean"]
 
@@ -1204,14 +1213,15 @@ degree = 0 # @param {type:"slider", min:0, max:4, step:1}
 regularization = 0.0 # @param {type:"number"}
 loss = "squared" # @param ["squared", "huber"]
 huber_delta = 1.0 # @param {type:"number"}
-# @markdown **Neural-network settings.** Start with the defaults. Change one setting at a time to compare width, training duration or the weight penalty.
+# @markdown **Neural-network settings.** Start with the defaults. Change one setting at a time to compare depth, width, training duration or the weight penalty.
+hidden_layers = 1 # @param {type:"slider", min:1, max:4, step:1}
 hidden_units = 32 # @param {type:"slider", min:4, max:128, step:4}
 learning_rate = 0.01 # @param {type:"number"}
 epochs = 1000 # @param {type:"slider", min:100, max:5000, step:100}
 weight_decay = 0.001 # @param {type:"number"}
 
 parameters = (dict(degree=degree, regularization=regularization, loss=loss, huber_delta=huber_delta)
-              if model_family == "polynomial" else dict(hidden_units=hidden_units, learning_rate=learning_rate,
+              if model_family == "polynomial" else dict(hidden_layers=hidden_layers, hidden_units=hidden_units, learning_rate=learning_rate,
                                                        epochs=epochs, weight_decay=weight_decay))
 run_experiment(model_family, target_transform, **parameters)
 
@@ -1229,13 +1239,14 @@ run_experiment(model_family, target_transform, **parameters)
 # ![04 · Compare a neural network](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/step-04.svg)
 #
 # ## 4. Compare a neural network
-# This **neural network** has one hidden layer. Each hidden unit forms a weighted sum of the inputs, adds a bias and applies a **ReLU** function: positive values pass through, and negative values become zero. A linear output combines the hidden-unit responses to predict latency.
+# Choose the **depth** of this neural network: one to four hidden layers, with one layer by default. Each hidden unit forms a weighted sum of its layer's inputs, adds a bias and applies a **ReLU** function: positive values pass through, and negative values become zero. The first hidden layer receives the network measurements; each additional hidden layer receives the previous layer's responses. A linear output combines the last hidden layer's responses to predict latency.
 #
 # Training learns the weights. You choose the **hyperparameters**, which control the network size and learning process:
 #
 # | Setting | Role | Values to compare |
 # |---|---|---|
-# | `hidden_units` | Number of hidden units; more units allow more input combinations | 8, 32 and 64 |
+# | `hidden_layers` | Depth: number of hidden layers | 1, 2 and 4 |
+# | `hidden_units` | Width: number of units in each hidden layer | 8, 32 and 64 |
 # | `learning_rate` | Scale of the weight updates | 0.001 and 0.01 |
 # | `epochs` | Number of passes through the training frames | 300, 1000 and 3000 |
 # | `weight_decay` | Strength of the penalty on squared weights | 0, 0.001 and 0.01 |
@@ -1247,7 +1258,7 @@ run_experiment(model_family, target_transform, **parameters)
 # ### Investigation B: model family and training duration
 # Select `model_family="neural_network"` and run the default neural-network settings. Compare its validation RMSE with a polynomial model using the **same data split and target scale**.
 #
-# If time permits, increase the number of epochs while keeping the other settings fixed. Then compare two widths or two regularization strengths. Use validation RMSE to assess whether the change improved predictions on held-out frames.
+# If time permits, increase the number of epochs while keeping the other settings fixed. Then compare two depths, two widths or two regularization strengths, changing one setting at a time. Use validation RMSE to assess whether the change improved predictions on held-out frames.
 #
 # The learning curve shows training MSE on targets standardized to zero mean and unit standard deviation using the training data. It measures squared prediction error; the fitting objective also includes the weight penalty. The score cards report RMSE in milliseconds, which you can compare across both model families.
 
