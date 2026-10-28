@@ -150,6 +150,32 @@ classifier training require fresh evaluator preparation and a new approved
 challenge version. Source caches, private partitions, audit samples and server
 reference artifacts belong in instructor storage.
 
+## Fresh Colab rehearsal before publication
+
+The instructor can rehearse the unpublished notebook using its local-file setup
+path. Open `sketch-generation/notebook.ipynb` through Colab's **File → Upload
+notebook** dialog and select a GPU runtime. In the Files panel:
+
+1. Upload `model.py` and `evaluator.py` into `/content`.
+2. Create `/content/data` and upload the approved `manifest.json`, `train.npz`,
+   `validation.npz` and `evaluator.npz` into that folder.
+3. Run the three setup cells. Existing files pass the same pinned checksum
+   checks used for release downloads.
+4. Run all five suggested configurations, inspect the figures and selection
+   controls, and retain the baseline and final JSON exports.
+
+Record the GPU model, PyTorch version, training times and total activity time.
+Check the two-minute target for a default training run and the 60-minute
+classroom sequence. Keep the default upload address for the published server;
+before deployment, retain the JSON files for manual scoring against the
+prepared private references or use an instructor-provided rehearsal endpoint.
+The saved export remains available when an upload fails.
+
+Publish the immutable release tag after the Colab rehearsal passes and
+publication is authorized. Students can then use automatic downloads. Keep
+private reference archives and instructor preparation data out of Colab's
+student workspace.
+
 ## References
 
 The [QuickDraw dataset](https://github.com/googlecreativelab/quickdraw-dataset)
