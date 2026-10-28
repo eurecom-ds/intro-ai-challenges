@@ -51,7 +51,6 @@
 import copy
 import csv
 from datetime import datetime, timezone
-import getpass
 import hashlib
 import html
 import io
@@ -931,7 +930,7 @@ def upload_submission(api_url, token=None):
         saved_copy()
         return
     if token is not None and (not isinstance(token, str) or not token.strip()):
-        print("Use the access code supplied by your instructor, or leave token unset.")
+        print("Enter the instructor's access code in the access_code field in Upload 1.")
         return
 
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
@@ -963,7 +962,7 @@ def upload_submission(api_url, token=None):
     except urllib.error.HTTPError as error:
         if error.code in {401, 403}:
             print("The upload needs a valid access code from your instructor.")
-            print("Enable server_requires_access_code in the upload cell and run it again; enter the instructor's code when prompted.")
+            print("Check the access_code field in Upload 1 and use the latest code from your instructor.")
         elif error.code in {301, 302, 303, 307, 308, 404}:
             print("Check the upload address with your instructor; use the challenge submission endpoint shown in Upload 1.")
         elif error.code >= 500:
@@ -1109,15 +1108,11 @@ name = "" # @param {type:"string"}
 surname = "" # @param {type:"string"}
 submission_url = "https://eurecom-probai-intro-ai-leaderboard.hf.space/api/challenges/network-latency/submissions" # @param {type:"string"}
 # @markdown Enter your name and surname as you want them to appear on the dashboard.
-# @markdown Enter the instructor's course upload code at the private prompt. Upload 2 reuses these names, upload address and checkbox setting.
-server_requires_access_code = True # @param {type:"boolean"}
+# @markdown **Access code:** enter the code supplied by your instructor. Upload 2 reuses this code, your names and the upload address.
+access_code = "" # @param {type:"string"}
 finalize_submission(name, surname, baseline=True)
 if finalized_submission is not None:
-    access_code = getpass.getpass("Access code: ") if server_requires_access_code else None
-    try:
-        upload_submission(submission_url, token=access_code)
-    finally:
-        access_code = None
+    upload_submission(submission_url, token=access_code)
 
 # %% [markdown]
 # ### Choose model settings
@@ -1224,9 +1219,9 @@ run_experiment(model_family, target_transform, **parameters)
 # ![06 · Upload the selected model](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/main/network-latency/assets/step-06.svg)
 #
 # ## 6. Refit and upload the selected model
-# Run the selected configuration in the experiment cell, then run **Upload 2**. It reuses the name, surname, upload address and access-code choice from Upload 1. If the instructor provides an access code, enter it again at the private prompt.
+# Run the selected configuration in the experiment cell, then run **Upload 2**. It reuses the name, surname, upload address and access code from Upload 1.
 #
-# To correct your name, surname or upload address, update the fields in Upload 1. Run the baseline and Upload 1 again to save those values, then rerun the selected experiment and Upload 2.
+# To correct your name, surname, upload address or access code, update the fields in Upload 1. Run the baseline and Upload 1 again to save those values, then rerun the selected experiment and Upload 2.
 #
 # Upload 2 checks the required investigations and lists any remaining steps. Complete those steps and run it again. It then refits the model on all public frames, saves the predictions and uploads them. Compare the private test score with the baseline score on the dashboard.
 #
@@ -1237,17 +1232,13 @@ run_experiment(model_family, target_transform, **parameters)
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Upload 2: refit and upload the selected model { display-mode: "form" }
-# @markdown Run the selected configuration again before uploading. This cell checks the required investigations, then refits and uploads using the name, surname and upload address from Upload 1.
-if not all(field in globals() for field in ("name", "surname", "submission_url", "server_requires_access_code")):
-    print("Run Upload 1 after the baseline to set your name, surname and upload address first.")
+# @markdown Run the selected configuration again before uploading. This cell checks the required investigations, then refits and uploads using the names, upload address and access code from Upload 1.
+if not all(field in globals() for field in ("name", "surname", "submission_url", "access_code")):
+    print("Run Upload 1 after the baseline to set your names, upload address and access code first.")
 else:
     finalize_submission(name, surname)
     if finalized_submission is not None:
-        access_code = getpass.getpass("Access code: ") if server_requires_access_code else None
-        try:
-            upload_submission(submission_url, token=access_code)
-        finally:
-            access_code = None
+        upload_submission(submission_url, token=access_code)
 
 # %% [markdown]
 # If the server is unavailable, download the submission JSON below and keep it for manual upload. To submit a different configuration, run its experiment and Upload 2 again to save predictions with those settings.

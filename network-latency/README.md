@@ -12,8 +12,8 @@ in milliseconds.
 1. Open the notebook in Colab and choose a CPU runtime.
 2. Run the three setup cells. The two public CSVs download automatically.
 3. Inspect the data and run the degree-0 baseline.
-4. Enter your name and surname, then use the instructor's course upload code
-   to upload the baseline.
+4. Enter your name, surname and the instructor's code in the `access_code`
+   field in Upload 1, then upload the baseline.
 5. Complete the investigations, choose a model using validation RMSE, and
    upload its predictions.
 
