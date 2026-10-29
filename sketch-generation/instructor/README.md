@@ -3,22 +3,24 @@
 The preparation CLI creates the public student archives and trains the frozen
 sketch evaluator. Run it from the challenge repository. Data preparation and
 manifest commands require NumPy; evaluator training also requires PyTorch.
-The course compute image supplies these libraries independently of Quarto.
 
 Keep the source cache and private preparation directory outside the public
 repository. The example below uses disposable local preparation storage.
+Supply `SKETCH_PREPARATION_SEED` from the private release configuration and
+retain its value with the private preparation records.
 
 ```bash
 python sketch-generation/instructor/prepare.py prepare-data \
   --cache-dir /private/tmp/intro-ai-sketch-generation/sources \
   --private-dir /private/tmp/intro-ai-sketch-generation/private \
   --public-dir sketch-generation/data \
-  --seed 20261028
+  --seed "${SKETCH_PREPARATION_SEED:?Set SKETCH_PREPARATION_SEED from private release configuration}"
 
 python sketch-generation/instructor/prepare.py train-evaluator \
   --private-dir /private/tmp/intro-ai-sketch-generation/private \
   --public-dir sketch-generation/data \
-  --device cpu --epochs 20 --seed 20261028
+  --device cpu --epochs 20 \
+  --seed "${SKETCH_PREPARATION_SEED:?Set SKETCH_PREPARATION_SEED from private release configuration}"
 
 python sketch-generation/instructor/prepare.py manifest \
   --public-dir sketch-generation/data
@@ -101,20 +103,6 @@ The public status `evaluator_ready` covers data and evaluator preparation. The
 separate release status remains `pending_instructor_colab_rehearsal` until the
 instructor rehearses the complete student activity in fresh GPU Colab.
 
-The supplied evaluator reached 94.64% balanced accuracy, with category recall
-between 92.85% and 96.50%. Held-out human batches beat each of the five
-degenerate comparators in all 20 aggregate comparisons. Every individual
-category comparison also passed 20 out of 20. The human-batch score averaged
-2.96, with a sample standard deviation of 0.23. Resampled training images
-averaged 3.11, consistent with the metric's role as a distribution comparison.
-
-A local Linux ARM Docker rehearsal restricted to one CPU and one BLAS thread
-scored the 1,000-image trained baseline in a median of 38 milliseconds over
-seven runs. This timing covers feature extraction, MMD and image diagnostics;
-HTTP, authentication, JSON decoding and persistence have separate costs.
-The private `rehearsal/metric-robustness.json` records full comparison results
-and timings. Hosted GPU Colab remains an instructor rehearsal step.
-
 Training-image resampling is also scored as an instructor baseline. The metric
 assesses the submitted image distribution. Inspect nearest training images and
 the notebook investigations when discussing memorization and generation.
@@ -152,9 +140,9 @@ reference artifacts belong in instructor storage.
 
 ## Fresh Colab rehearsal before publication
 
-The instructor can rehearse the unpublished notebook using its local-file setup
-path. Open `sketch-generation/notebook.ipynb` through Colab's **File → Upload
-notebook** dialog and select a GPU runtime. In the Files panel:
+For a local-file rehearsal, open `sketch-generation/notebook.ipynb` through
+Colab's **File → Upload notebook** dialog and select a GPU runtime. In the Files
+panel:
 
 1. Upload `model.py` and `evaluator.py` into `/content`.
 2. Create `/content/data` and upload the approved `manifest.json`, `train.npz`,
@@ -175,10 +163,9 @@ prepared private references or use an instructor-provided rehearsal endpoint.
 The saved export remains available when an upload fails.
 
 Publish the notebook's pinned public-file Git revision after the Colab
-rehearsal passes and publication is authorized. Preserve existing immutable
-release tags. Students can then use automatic downloads. Keep
-private reference archives and instructor preparation data out of Colab's
-student workspace.
+rehearsal passes. Preserve existing immutable release tags. Students can then
+use automatic downloads. Keep private reference archives and instructor
+preparation data out of Colab's student workspace.
 
 ## References
 
