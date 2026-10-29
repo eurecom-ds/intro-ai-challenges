@@ -27,6 +27,10 @@ def validate_policy(value):
         result = {}
         for name, expected in (("weight", shape), ("bias", (shape[0],))):
             try:
+                # Inspect values before NumPy promotes mixed booleans to floats.
+                original = np.asarray(layer[name], dtype=object)
+                if any(isinstance(item, (bool, np.bool_)) for item in original.flat):
+                    raise ValueError
                 raw = np.asarray(layer[name])
                 if raw.dtype.kind not in "iuf" or raw.shape != expected:
                     raise ValueError

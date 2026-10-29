@@ -8,8 +8,8 @@
     },
     "evaluator.py": {
       "path": "evaluator.py",
-      "sha256": "079958721b356f3fb2838fc78f21587b65a40694958b98bf119c386f16ab9752",
-      "size_bytes": 6227
+      "sha256": "076756b32ff100d35aada1ed34aa6214f2c4596c5afedd24c127b07d586ec7b4",
+      "size_bytes": 6496
     },
     "model.py": {
       "path": "model.py",
@@ -22,7 +22,7 @@
       "size_bytes": 5766
     }
   },
-  "protocol_fingerprint": "81a3efc7c0c51af0681108d911958084854836b1e9efa4bbc76ff8e4f70cbe9a",
+  "protocol_fingerprint": "cdac99f1f3aa614e2f7f40d2ec842c534d54851e14617b5398742ff80b0da952",
   "public_seed_pairs": [
     [
       630000,
