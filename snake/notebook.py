@@ -673,7 +673,7 @@ watch_untrained()
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Train the 256-game starting agent { display-mode: "form" }
-run_experiment(**{key: value for key, value in snake_protocol.BASELINE.items() if key != "seed"});
+_ = run_experiment(**{key: value for key, value in snake_protocol.BASELINE.items() if key != "seed"})
 
 # %% [markdown]
 # ### How evaluation works
@@ -696,7 +696,7 @@ name = "" # @param {type:"string"}
 surname = "" # @param {type:"string"}
 submission_url = "https://eurecom-probai-intro-ai-leaderboard.hf.space/api/challenges/snake/submissions" # @param {type:"string"}
 access_code = "" # @param {type:"string"}
-upload_baseline(name, surname, submission_url, access_code);
+_ = upload_baseline(name, surname, submission_url, access_code)
 
 # %% [markdown]
 # ## 3. Investigate the rewards
@@ -739,7 +739,7 @@ move_reward = -0.01 # @param {type:"number"}
 distance_reward = 0 # @param {type:"number"}
 learning_rate = 0.001 # @param [0.0001, 0.0003, 0.001, 0.003, 0.01] {type:"raw"}
 gamma = 0.99 # @param [0, 0.5, 0.9, 0.95, 0.99, 1] {type:"raw"}
-run_experiment(episodes, learning_rate, gamma, food_reward, collision_reward, move_reward, distance_reward);
+_ = run_experiment(episodes, learning_rate, gamma, food_reward, collision_reward, move_reward, distance_reward)
 
 # %% [markdown]
 # ## 4. Inspect another game
@@ -777,7 +777,7 @@ show_configuration_selector()
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Upload 2: save and upload the selected agent { display-mode: "form" }
-upload_selected();
+_ = upload_selected()
 
 # %% [markdown]
 # ### Keep a copy and discuss
