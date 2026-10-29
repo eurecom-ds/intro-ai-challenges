@@ -31,7 +31,8 @@ def entry(path, relative):
 
 def prepare_public():
     files = {name: entry(ROOT / name, name)
-             for name in ("environment.py", "evaluator.py", "protocol.py", "model.py")}
+             for name in ("environment.py", "evaluator.py", "protocol.py", "model.py",
+                          "torch_environment.py", "numba_environment.py")}
     manifest = {"challenge_version": protocol.CHALLENGE_VERSION, "protocol_fingerprint": protocol.protocol_fingerprint(),
                 "files": files, "public_seed_pairs": protocol.public_seed_pairs(),
                 "release_status": "pending_instructor_colab_rehearsal"}
@@ -89,7 +90,8 @@ def prepare_bundle(output):
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if manifest["protocol_fingerprint"] != protocol.protocol_fingerprint():
         raise ValueError("Refresh the public manifest before making a helper bundle.")
-    names = ("environment.py", "evaluator.py", "protocol.py", "model.py")
+    names = ("environment.py", "evaluator.py", "protocol.py", "model.py",
+             "torch_environment.py", "numba_environment.py")
     for name in names:
         if entry(ROOT / name, name) != manifest["files"][name]:
             raise ValueError("The public helper differs from its manifest: " + name)

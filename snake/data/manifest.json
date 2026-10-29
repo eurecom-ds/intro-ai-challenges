@@ -13,13 +13,23 @@
     },
     "model.py": {
       "path": "model.py",
-      "sha256": "4afad5caa2d0a0e2501e47a95a32b3310ecac01f163ab68547d4255215631e70",
-      "size_bytes": 11813
+      "sha256": "f733e0fd0870c30af50febf1c6595b8b8e604b2f806afa7b069bc32233189887",
+      "size_bytes": 22688
+    },
+    "numba_environment.py": {
+      "path": "numba_environment.py",
+      "sha256": "34fd88523071aa93f802de1262aa40074f197b2f8db442510f3ea9a99bf93e70",
+      "size_bytes": 7543
     },
     "protocol.py": {
       "path": "protocol.py",
       "sha256": "d8b8cf7f8e2f4833ed2bf5b75d795b0819bb212c43f48e9f9223d678d8668115",
       "size_bytes": 5948
+    },
+    "torch_environment.py": {
+      "path": "torch_environment.py",
+      "sha256": "6a50b1724c6957a0024c82bcfede2773f76be3122bbb0d22b49b3b820b9fc86f",
+      "size_bytes": 7426
     }
   },
   "protocol_fingerprint": "574634737fea7cb822c831ddf35392976307a0d11137e40b4b8ee7bf16bf22bd",
