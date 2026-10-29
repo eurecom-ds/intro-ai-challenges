@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="124" viewBox="0 0 840 124" role="img" aria-labelledby="title description">
+  <title id="title">Submit your selected policy</title><desc id="description">Keep the saved JSON for downloading or retrying</desc>
+  <rect x="1" y="1" width="838" height="122" rx="14" fill="#f3f7fc" stroke="#dce5ef"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="22" y="30" font-size="11" font-weight="700" fill="#2563eb" letter-spacing="1.1">UPLOAD 2</text>
+    <text x="22" y="65" font-size="22" font-weight="700" fill="#172c4d">Submit your selected policy</text>
+    <text x="22" y="94" font-size="16" fill="#172c4d">Keep the saved JSON for downloading or retrying</text>
+  </g>
+</svg>
