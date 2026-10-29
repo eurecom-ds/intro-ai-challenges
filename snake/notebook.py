@@ -45,6 +45,7 @@
 # %% [markdown]
 # ## Setup
 # Use a **CPU runtime** in Colab and run the next **three setup cells** in order. Setup downloads the public helpers automatically and checks their release hashes.
+# Setup installs Numba if needed. The first training run compiles the simulator; later runs reuse the compiled code.
 #
 # Keep this runtime connected while working. Rerunning Setup 3 clears your experiment table, retained agents and current selection. Your saved submission files remain available.
 
@@ -58,6 +59,7 @@ import json
 import os
 from pathlib import Path
 import re
+import subprocess
 import sys
 import tempfile
 import time
@@ -67,6 +69,9 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+if importlib.util.find_spec("numba") is None:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "numba"])
+import numba
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
@@ -399,7 +404,7 @@ def run_experiment(episodes=8192, learning_rate=0.001, gamma=0.99, food_reward=1
             if progress_display is not None:
                 progress_display.update(HTML("<p>" + html.escape(message) + "</p>"))
 
-        checkpoint = snake_model.train_policy(config, progress=update)
+        checkpoint = snake_model.train_policy(config, progress=update, backend="numba")
         score = checkpoint["validation"]
         if score["episodes"] != 30 or not np.isfinite(score["mean_apples"]):
             raise ValueError("The public evaluation is incomplete. Rerun this experiment.")

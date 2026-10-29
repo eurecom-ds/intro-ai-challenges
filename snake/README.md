@@ -107,14 +107,16 @@ trusted NumPy policy inference and scoring, `protocol.py` defines versioned
 rules and controls, and `model.py` supplies the CPU trainer. Public helper
 hashes and evaluation seeds are recorded in `data/manifest.json`.
 
-The optional `torch_environment.py` and `numba_environment.py` helpers support
-instructor CPU benchmarks. They load when their backend is selected; the
-student notebook uses the reference simulator by default.
+The notebook uses the Numba simulator in `numba_environment.py` for training
+and CPU PyTorch for neural-network updates. The first training run compiles
+the simulator; later runs reuse the compiled functions. `torch_environment.py`
+provides alternative simulator backends for instructor CPU benchmarks.
 
 Version: `snake-v2`. Downloads use the immutable revision recorded in the
 notebook. Setup verifies the manifest and helper hashes before loading code.
-For local Jupyter, open the notebook from this directory. NumPy, CPU PyTorch,
-Matplotlib, IPython and ipywidgets are required. Colab supplies these libraries.
+For local Jupyter, open the notebook from this directory. NumPy, Numba, CPU
+PyTorch, Matplotlib, IPython and ipywidgets are required. Colab supplies the
+core libraries; notebook setup installs Numba when needed.
 
 See the [instructor guide](instructor/README.md) for private evaluation assets,
 CPU rehearsal, helper parity, snapshot initialization and release checks.

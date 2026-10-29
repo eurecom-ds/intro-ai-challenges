@@ -109,12 +109,14 @@ The server evaluates every policy on the same private games. Repeated uploads
 therefore provide feedback against that fixed evaluation set. Select models
 using the public evidence and discuss observations with students.
 
-## Optional CPU simulator backends
+## CPU simulator backends
 
 The trainer supports `backend="reference"`, `"torch_eager"`, `"torch_compile"`
-and `"numba"`. The notebook uses the reference backend by default. The other
-backends are instructor experiments; they preserve the game, policy network,
-32-game batches, action sampling and policy-gradient updates.
+and `"numba"`. The notebook selects `backend="numba"` for training. Direct calls
+to `model.train_policy` default to `"reference"`; pass `backend="numba"` to
+reproduce notebook training. All backends preserve the game, policy network,
+32-game batches, action sampling and policy-gradient updates. Neural-network
+updates use CPU PyTorch.
 
 The tensor simulators store fixed-size body-age grids and mask completed games.
 They precompute each game's food ranks from its canonical PCG64 stream.
@@ -142,10 +144,10 @@ throughput and policy parity. Compilation costs should be considered alongside
 the number of experiments in a runtime.
 
 The PyTorch compiler backend requires a working C++ compiler and OpenMP runtime.
-Numba is an optional dependency, loaded only when its backend is selected.
-Numba keeps compiled specializations warm within the process. Its disk cache
-is disabled so local, package and release-scoped notebook imports remain
-independent.
+Numba is required for notebook training; setup installs it when needed. The
+first training run compiles the simulator, and later runs reuse its compiled
+specializations within the process. Its disk cache is disabled so local,
+package and release-scoped notebook imports remain independent.
 For an individual instructor experiment:
 
 ```python

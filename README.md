@@ -53,7 +53,7 @@ their styling appears in Colab before any cells run. Keep descriptive image
 text alongside the SVG title and description when editing a panel.
 
 Snake uses the `snake-v2` game and policy format. Its CPU notebook pins the
-simulator, evaluator, protocol, trainer and optional CPU backend helpers to the
+simulator, evaluator, protocol, trainer and CPU backend helpers to the
 immutable revision in `RELEASE_REVISION`. Check matching notebook/server
 helper copies, prepare private evaluation seeds separately, and complete the CPU and fresh Colab
 rehearsals described in the [instructor guide](snake/instructor/README.md).
