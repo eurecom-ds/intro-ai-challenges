@@ -6,6 +6,11 @@ at most 1,500 attempted moves. Students choose signed food,
 collision, movement and distance rewards. Public and private evaluation rank
 food collected first and collection speed second.
 
+The reference configuration trains for 65,536 episodes with learning rate
+0.003, discount 0.999, food reward 10, collision reward −10, movement reward
+−0.01 and distance-progress reward 1. The starting agent uses the same settings
+for 256 episodes.
+
 ## Public release
 
 The simulator, protocol and NumPy evaluator have matching copies in the
@@ -59,8 +64,8 @@ principal comparisons with three initialization seeds and evaluate them on
 separate instructor games.
 
 ```bash
-uv run --no-project --with numpy --with torch python snake/instructor/rehearse.py \
-  --output /private/tmp/snake-rehearsal-learning --episodes 8192 --seeds 42,43,44
+uv run --no-project --with numpy --with torch --with numba python snake/instructor/rehearse.py \
+  --output /private/tmp/snake-rehearsal-learning --episodes 65536 --seeds 42,43,44
 ```
 
 Record episodes, environment steps, updates, elapsed time, policy entropy,
@@ -68,11 +73,19 @@ public food scores, independent evaluation scores and representative replays.
 Use these measurements to choose release episode presets. Different rewards
 can change episode length and the number of moves in a fixed episode budget.
 
-The policy update averages episode sums of discounted reward-to-go minus the
-old value baseline. The value network then fits the Monte Carlo returns.
-Training uses raw rewards, fixed architecture and sampled actions. Public
-validation measurements leave the final training budget and retained actor
-unchanged.
+The trainer adds potential-based shaping with fixed strength 1. A live state's
+potential Φ is 1 when a static four-neighbor path joins head and current tail
+through free cells; the head and tail are traversable and other body cells are
+blocked. Collision, board-completion and move-limit terminal states have Φ = 0.
+The shaping reward is $\gamma\Phi(s_{t+1})-\Phi(s_t)$.
+
+Complete-episode Monte Carlo returns satisfy $G'_t=G_t-\Phi(s_t)$. The actor
+maximizes the episode-average sum of
+$\gamma^t(G'_t-V(s_t))\log\pi(a_t\mid s_t)$, with the separate value network
+fitting $G'_t$. The training curves show the undiscounted base and shaped reward
+sums per game separately. The network architecture and sampled actions remain
+fixed. Public validation measurements leave the final training budget and
+retained actor unchanged.
 
 ## Notebook and upload rehearsal
 
@@ -144,8 +157,9 @@ throughput and policy parity. Compilation costs should be considered alongside
 the number of experiments in a runtime.
 
 The PyTorch compiler backend requires a working C++ compiler and OpenMP runtime.
-Numba is required for notebook training; setup installs it when needed. The
-first training run compiles the simulator, and later runs reuse its compiled
+Numba supplies the default simulator and the tail-connectivity kernel used by
+every training backend. Notebook setup installs it when needed. The first
+training run compiles the required kernels, and later runs reuse their compiled
 specializations within the process. Its disk cache is disabled so local,
 package and release-scoped notebook imports remain independent.
 For an individual instructor experiment:

@@ -16,8 +16,8 @@ what your agent learns. Use a **CPU runtime** in Colab. All controls are supplie
 6. Compare one setting at a time. Predict the behaviour before training, then inspect the replay and public evaluation results.
 7. Select a retained agent from the dropdown and run Upload 2.
 
-The longer reference trains for 8,192 episodes. The controls also offer 4,096,
-16,384, 32,768 and 65,536 episodes. Every run starts from the same
+The longer reference trains for 65,536 episodes. The controls also offer 4,096,
+8,192, 16,384 and 32,768 episodes. Every run starts from the same
 initialization seed and retains its final actor. Repeating a configuration
 counts once. Resetting Setup 3 clears the local experiment table and selection.
 
@@ -28,8 +28,9 @@ turning left and turning right. Eating food grows its body. A wall collision,
 body collision, full board or 1,500 attempted moves ends a game. Moving into the
 departing tail's cell is legal on a move without growth.
 
-A small neural network maps the board and game information to probabilities
-for the three actions. Training samples actions from those probabilities.
+A small multilayer perceptron (MLP), with two 64-unit hidden layers, maps the
+board and game information to probabilities for the three actions. Training
+samples actions from those probabilities.
 REINFORCE uses discounted future rewards to update the policy. A separate
 value network supplies a baseline: the expected future reward from a state.
 Actions with better-than-expected outcomes receive a positive advantage.
@@ -45,19 +46,36 @@ The indicators provide information; all three actions remain available.
 | Food reward | 10 | −100 to 100 |
 | Collision reward | −10 | −100 to 100 |
 | Each-move reward | −0.01 | −10 to 10 |
-| Distance-progress reward | 0 | −10 to 10 |
+| Distance-progress reward | 1 | −10 to 10 |
 
 Every attempted move receives the movement reward. An eating move also
 receives the food reward. A collision also receives the collision reward.
 Distance progress uses Manhattan distance: one cell toward the current food
 contributes +1, and one cell away contributes −1. On an eating move, progress
 uses the food's position before it was eaten. A collision has zero distance
-progress. The move limit and board completion add no extra reward.
+progress. These four controls define the base reward.
 
 You can also choose learning rate, discount factor and training episodes.
-The default learning rate is 0.001 and the discount factor is 0.99. An episode
+The default learning rate is 0.003 and the discount factor is 0.999. An episode
 is one complete game. Record the number of moves as well as episodes when
 comparing training experience.
+
+Training adds a fixed potential-based shaping term. For a live state, the
+potential Φ is 1 when the head can reach the current tail through free cells,
+and 0 otherwise. The path calculation treats the head and tail as available
+and blocks the other body cells. Every terminal state has potential 0.
+
+The added reward is
+
+$$
+F(s_t,s_{t+1})=\gamma\Phi(s_{t+1})-\Phi(s_t).
+$$
+
+For complete episodes, the trainer computes the shaped return as
+$G'_t=G_t-\Phi(s_t)$, where $G_t$ is the discounted base return. The value
+baseline fits the shaped return. Charts show the average base and shaped
+reward sums per game separately. Apples and collection time provide the common
+evaluation metrics.
 
 The notebook suggests comparisons for longer training and each reward term.
 Equivalent controlled comparisons can share runs. Completion requires the
@@ -107,10 +125,11 @@ trusted NumPy policy inference and scoring, `protocol.py` defines versioned
 rules and controls, and `model.py` supplies the CPU trainer. Public helper
 hashes and evaluation seeds are recorded in `data/manifest.json`.
 
-The notebook uses the Numba simulator in `numba_environment.py` for training
-and CPU PyTorch for neural-network updates. The first training run compiles
-the simulator; later runs reuse the compiled functions. `torch_environment.py`
-provides alternative simulator backends for instructor CPU benchmarks.
+The notebook uses the Numba simulator and tail-connectivity kernel in
+`numba_environment.py`, with CPU PyTorch for neural-network updates. The first
+training run compiles the kernels; later runs reuse the compiled functions.
+`torch_environment.py` provides alternative simulator backends for instructor
+CPU benchmarks.
 
 Version: `snake-v2`. Downloads use the immutable revision recorded in the
 notebook. Setup verifies the manifest and helper hashes before loading code.

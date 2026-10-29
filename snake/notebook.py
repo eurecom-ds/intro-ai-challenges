@@ -78,8 +78,8 @@ import torch
 from IPython.display import display, HTML, FileLink
 
 CHALLENGE_VERSION = "snake-v2"
-RELEASE_REVISION = "1970d484d99f84d8da1808d63dffd2fbaf49b6ef"
-MANIFEST_SHA256 = "5fbe10fe06143e8aa114a15ca4e05c2bed664006784b79e1c2e0c8e0272c40c2"
+RELEASE_REVISION = "39e7ef5f40c9eec0a2214b67aac2046dd2c06819"
+MANIFEST_SHA256 = "20d3d15a6910b183dae0f0290380903846916e633d9acc98ce3741fbdc8623ca"
 RELEASE_BASE = f"https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/{RELEASE_REVISION}/snake/"
 ROOT = Path(globals().get("SNAKE_OUTPUT_DIR", Path(tempfile.gettempdir()) / "intro-ai-snake" / "exports"))
 ROOT.mkdir(parents=True, exist_ok=True)
@@ -313,9 +313,12 @@ def draw_training(record):
     validation = [row for row in history if "validation" in row]
     fig, axes = plt.subplots(2, 2, figsize=(10, 6.4), layout="constrained")
     x = [row["episodes"] for row in training]
-    axes[0, 0].plot(x, [row["training_return"] for row in training], color="#2563eb")
-    axes[0, 0].set(title="Training return", ylabel="Raw reward per game")
-    for key, label in (("food", "Food"), ("collision", "Collision"), ("move", "Each move"), ("distance", "Distance")):
+    axes[0, 0].plot(x, [row["base_training_return"] for row in training], label="Base reward", color="#2563eb")
+    axes[0, 0].plot(x, [row["training_return"] for row in training], label="With shaping", color="#9333ea")
+    axes[0, 0].set(title="Episode reward", ylabel="Undiscounted reward per game")
+    axes[0, 0].legend(fontsize=8)
+    for key, label in (("food", "Food"), ("collision", "Collision"), ("move", "Each move"),
+                       ("distance", "Distance"), ("potential_shaping", "Potential shaping")):
         axes[0, 1].plot(x, [row["reward_components"][key] for row in training], label=label)
     axes[0, 1].set(title="Reward contributions", ylabel="Raw reward per game")
     axes[0, 1].legend(fontsize=8)
@@ -378,8 +381,8 @@ def watch_untrained():
     render_replay(result["replay"], title="Untrained agent: sampled actions")
 
 
-def run_experiment(episodes=8192, learning_rate=0.001, gamma=0.99, food_reward=10,
-                   collision_reward=-10, move_reward=-0.01, distance_reward=0):
+def run_experiment(episodes=65536, learning_rate=0.003, gamma=0.999, food_reward=10,
+                   collision_reward=-10, move_reward=-0.01, distance_reward=1):
     global last_result
     try:
         config = snake_protocol.settings(episodes=episodes, learning_rate=learning_rate, gamma=gamma,
@@ -669,7 +672,7 @@ watch_untrained()
 #
 # Training collects batches of **32 complete games**, then updates the policy and baseline. Each experiment starts from the same initialization and random seeds. Training retains its final policy.
 #
-# The starting configuration trains for **256 games**, with food reward **10**, collision reward **−10**, move reward **−0.01** and distance reward **0**.
+# The starting configuration trains for **256 games**, with food reward **10**, collision reward **−10**, move reward **−0.01** and distance reward **1**. It uses learning rate **0.003** and γ **0.999**. The longer reference uses the same settings for **65,536 games**.
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Train the 256-game starting agent { display-mode: "form" }
@@ -702,10 +705,10 @@ _ = upload_baseline(name, surname, submission_url, access_code)
 # ## 3. Investigate the rewards
 # ![Predict, change one setting, train, then inspect behaviour and food collection.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/5f2d202e703da1308a3472f23761362980a26159/snake/assets/investigations.svg)
 #
-# The reward after each attempted move is
+# The base reward after each attempted move is
 #
 # $$
-# r_t=w_{\mathrm{food}}I_{\mathrm{food}}+
+# r_t^{\mathrm{base}}=w_{\mathrm{food}}I_{\mathrm{food}}+
 # w_{\mathrm{collision}}I_{\mathrm{collision}}+
 # w_{\mathrm{move}}+
 # w_{\mathrm{distance}}\Delta d_t.
@@ -713,32 +716,40 @@ _ = upload_baseline(name, surname, submission_url, access_code)
 #
 # The two indicators equal 1 when food is eaten or a collision occurs. The move reward applies on every attempt, including a collision. Distance progress is the decrease in **Manhattan distance**, the number of horizontal and vertical moves to the current food. A move closer gives +1; a move farther gives −1. On an eating move, progress uses the food's old position before replacement food appears. Collision progress is zero.
 #
+# Training also uses a fixed **potential-based shaping** term. Let $s_t$ be the game state before a move. The potential $\Phi(s_t)$ is **1** when a path through free cells connects the head to the current tail, and **0** otherwise. This static path check treats the head and tail as traversable and blocks the other body cells. Every terminal state has potential **0**.
+#
+# $$
+# r_t^{\mathrm{train}}=r_t^{\mathrm{base}}+\gamma\Phi(s_{t+1})-\Phi(s_t).
+# $$
+#
+# For a complete game, this changes the discounted reward-to-go $G_t$ into $G_t-\Phi(s_t)$. Both the policy update and the learned value baseline use that shaped return. The shaping strength stays fixed at **1** during all comparisons. Evaluation continues to count food and food-collection moves.
+#
 # Every reward control accepts positive, zero and negative values. Before changing a value, predict the behaviour it could encourage. Train, watch a preview and compare public food collection.
 #
 # | Suggested run | Training games | Food | Collision | Move | Distance | Question |
 # |---|---:|---:|---:|---:|---:|---|
-# | Starting agent | 256 | 10 | −10 | −0.01 | 0 | What does short training achieve? |
-# | Reference | 8192 | 10 | −10 | −0.01 | 0 | What changes with more experience? |
-# | Food | 8192 | 1 | −10 | −0.01 | 0 | How does a smaller food reward change behaviour? |
-# | Collision | 8192 | 10 | 0 | −0.01 | 0 | What happens when collisions have no direct penalty? |
-# | Movement | 8192 | 10 | −10 | +0.1 | 0 | What behaviour earns movement rewards? |
-# | Distance | 8192 | 10 | −10 | −0.01 | 1 | Does progress feedback help collect food? |
+# | Starting agent | 256 | 10 | −10 | −0.01 | 1 | What does short training achieve? |
+# | Reference | 65536 | 10 | −10 | −0.01 | 1 | What changes with more experience? |
+# | Food | 65536 | 1 | −10 | −0.01 | 1 | How does a smaller food reward change behaviour? |
+# | Collision | 65536 | 10 | 0 | −0.01 | 1 | What happens when collisions have no direct penalty? |
+# | Movement | 65536 | 10 | −10 | +0.1 | 1 | What behaviour earns movement rewards? |
+# | Distance | 65536 | 10 | −10 | −0.01 | 0 | How does learning change when distance progress has zero weight? |
 #
-# Use learning rate **0.001** and γ **0.99** for these comparisons. Change one setting at a time from the reference configuration.
+# Use learning rate **0.003** and γ **0.999** for these comparisons. Change one setting at a time from the reference configuration. The controls also offer shorter budgets for exploratory runs.
 #
 # Complete **at least three distinct configurations, including the starting agent**. The remaining suggested runs and learning-rate or discount-factor changes are further investigations.
 #
-# The charts show raw training return, its four contributions, training food collection and public evaluation. Compare configurations with different reward values through food and collection time. Training return has the units and preferences of the chosen reward function.
+# The charts separate base episode reward from shaped episode reward, show all five reward contributions, and track training food collection and public evaluation. The reward totals are undiscounted sums per game. Compare configurations with different reward values through food and collection time.
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Choose rewards and settings, then train an experiment { display-mode: "form" }
-episodes = 8192 # @param [256, 4096, 8192, 16384, 32768, 65536] {type:"raw"}
+episodes = 65536 # @param [256, 4096, 8192, 16384, 32768, 65536] {type:"raw"}
 food_reward = 10 # @param {type:"number"}
 collision_reward = -10 # @param {type:"number"}
 move_reward = -0.01 # @param {type:"number"}
-distance_reward = 0 # @param {type:"number"}
-learning_rate = 0.001 # @param [0.0001, 0.0003, 0.001, 0.003, 0.01] {type:"raw"}
-gamma = 0.99 # @param [0, 0.5, 0.9, 0.95, 0.99, 1] {type:"raw"}
+distance_reward = 1 # @param {type:"number"}
+learning_rate = 0.003 # @param [0.0001, 0.0003, 0.001, 0.003, 0.01] {type:"raw"}
+gamma = 0.999 # @param [0, 0.5, 0.9, 0.95, 0.99, 0.999, 1] {type:"raw"}
 _ = run_experiment(episodes, learning_rate, gamma, food_reward, collision_reward, move_reward, distance_reward)
 
 # %% [markdown]

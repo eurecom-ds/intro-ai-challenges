@@ -22,10 +22,10 @@ def rehearsal_configurations(episodes):
             ("less_food", {**reference, "food_reward": 1.0}),
             ("no_collision_penalty", {**reference, "collision_reward": 0.0}),
             ("survival", {**reference, "move_reward": .1}),
-            ("distance", {**reference, "distance_reward": 1.0})]
+            ("no_distance", {**reference, "distance_reward": 0.0})]
 
 
-def run_rehearsal(output, episodes=8192, seeds=(42, 43, 44), profiles=None):
+def run_rehearsal(output, episodes=65536, seeds=(42, 43, 44), profiles=None):
     output = Path(output).resolve()
     if Path("/private/tmp") not in output.parents:
         raise ValueError("Keep disposable rehearsal output below /private/tmp.")
@@ -69,7 +69,7 @@ def run_rehearsal(output, episodes=8192, seeds=(42, 43, 44), profiles=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--episodes", type=int, default=8192)
+    parser.add_argument("--episodes", type=int, default=65536)
     parser.add_argument("--seeds", default="42,43,44")
     parser.add_argument("--profiles", default="", help="Comma-separated profile names; empty runs all comparisons.")
     args = parser.parse_args()
