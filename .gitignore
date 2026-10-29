@@ -11,4 +11,8 @@ network-latency/network-latency_*.json
 network-latency/network-latency_*.zip
 sketch-generation/sketch-generation_*.json
 sketch-generation/*.pt
+snake/snake_*.json
+snake/*.pt
+snake/_runtime/
+snake_*.json
 _private/

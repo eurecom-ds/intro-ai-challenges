@@ -11,6 +11,7 @@ dropdown and run Upload 2.
 | --- | --- | --- | --- |
 | [Network latency](network-latency/README.md) | Compare polynomial regression and a neural network using validation RMSE | CPU | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/eurecom-ds/intro-ai-challenges/blob/main/network-latency/notebook.ipynb) |
 | [Teach a model to draw](sketch-generation/README.md) | Train a conditional VAE and compare generated sketch distributions | GPU | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/eurecom-ds/intro-ai-challenges/blob/main/sketch-generation/notebook.ipynb) |
+| [Teach an AI to play Snake](snake/README.md) | Train a policy-gradient agent and investigate reward design | CPU | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/eurecom-ds/intro-ai-challenges/blob/main/snake/notebook.ipynb) |
 
 [Course website](https://eurecom-ds.github.io/intro-ai/) ·
 [Leaderboard](https://eurecom-probai-intro-ai-leaderboard.hf.space/)
@@ -26,6 +27,9 @@ uvx --from jupytext==1.19.6 jupytext --to ipynb network-latency/notebook.py \
 
 uvx --from jupytext==1.19.6 jupytext --to ipynb sketch-generation/notebook.py \
   --output sketch-generation/notebook.ipynb
+
+uvx --from jupytext==1.19.6 jupytext --to ipynb snake/notebook.py \
+  --output snake/notebook.ipynb
 ```
 
 Commit the source and generated notebook together. Keep notebook execution
@@ -47,6 +51,12 @@ Static banners, step labels and activity cards are SVG images in each
 activity's `assets/` directory. Embed these panels with Markdown image links so
 their styling appears in Colab before any cells run. Keep descriptive image
 text alongside the SVG title and description when editing a panel.
+
+Snake uses the `snake-v1` game and policy format. Its CPU notebook pins the
+simulator, evaluator, protocol and trainer to the immutable revision in
+`RELEASE_REVISION`. Check matching notebook/server helper copies, prepare
+private evaluation seeds separately, and complete the CPU and fresh Colab
+rehearsals described in the [instructor guide](snake/instructor/README.md).
 
 Rehearse the notebook and upload flow with disposable submissions before a
 release. The instructor performs a separate rehearsal in a fresh Colab session.

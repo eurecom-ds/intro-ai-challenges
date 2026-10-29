@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import secrets
 import sys
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -80,6 +81,25 @@ def check_copies(leaderboard_root):
     print("Simulator, evaluator and protocol copies match.")
 
 
+def prepare_bundle(output):
+    output = Path(output).resolve()
+    if output == ROOT or ROOT in output.parents:
+        raise ValueError("Keep rehearsal bundles outside the public activity directory.")
+    manifest_path = ROOT / "data" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest["protocol_fingerprint"] != protocol.protocol_fingerprint():
+        raise ValueError("Refresh the public manifest before making a helper bundle.")
+    names = ("environment.py", "evaluator.py", "protocol.py", "model.py")
+    for name in names:
+        if entry(ROOT / name, name) != manifest["files"][name]:
+            raise ValueError("The public helper differs from its manifest: " + name)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(output, "x", compression=zipfile.ZIP_DEFLATED) as archive:
+        for name in (*names, "data/manifest.json"):
+            archive.write(ROOT / name, "snake-helpers/" + name)
+    print("Verified rehearsal helper bundle:", output)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -88,13 +108,17 @@ def main():
     private.add_argument("--private-dir", type=Path, required=True)
     check = commands.add_parser("check", help="Check that notebook and server helper copies match.")
     check.add_argument("--leaderboard-root", type=Path, required=True)
+    bundle = commands.add_parser("bundle", help="Package verified helpers for an unpublished Colab rehearsal.")
+    bundle.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if args.command == "public":
         prepare_public()
     elif args.command == "private":
         prepare_private(args.private_dir)
-    else:
+    elif args.command == "check":
         check_copies(args.leaderboard_root)
+    else:
+        prepare_bundle(args.output)
 
 
 if __name__ == "__main__":

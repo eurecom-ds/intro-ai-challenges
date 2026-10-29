@@ -85,10 +85,24 @@ unchanged.
 8. Save and restore a disposable score snapshot, then verify the reset hook.
 
 Finish with a fresh Colab CPU session. For unpublished helpers, upload the
-local notebook and helper bundle into the runtime, set
-`INSTRUCTOR_HELPER_DIR` to their directory, and run setup. Setup verifies the
-same manifest and file hashes. After publication, rehearse the normal pinned
-download path separately.
+local notebook and a verified helper bundle into the runtime:
+
+```bash
+python snake/instructor/prepare.py bundle --output /private/tmp/snake-helpers.zip
+```
+
+After uploading the ZIP through Colab's Files panel, run this instructor cell
+before the three setup cells:
+
+```python
+import zipfile
+with zipfile.ZipFile('/content/snake-helpers.zip') as archive:
+    archive.extractall('/content')
+INSTRUCTOR_HELPER_DIR = '/content/snake-helpers'
+```
+
+Setup verifies the same manifest and file hashes. After publication, rehearse
+the normal pinned download path separately.
 
 The server evaluates every policy on the same private games. Repeated uploads
 therefore provide feedback against that fixed evaluation set. Select models
