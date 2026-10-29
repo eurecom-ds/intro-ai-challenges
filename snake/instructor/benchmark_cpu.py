@@ -29,7 +29,7 @@ def main():
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--backends", nargs="+", choices=("reference", "torch_eager", "torch_compile", "numba"),
                         default=("reference", "torch_eager", "torch_compile", "numba"))
-    parser.add_argument("--train-episodes", type=int, choices=(0, 256, 4096, 8192, 16384), default=0,
+    parser.add_argument("--train-episodes", type=int, choices=(0, *protocol.EPISODES), default=0,
                         help="Also compare complete reference and JIT CPU training runs.")
     parser.add_argument("--fresh-cache", action="store_true", help="Use a new compiler cache for a cold measurement.")
     args = parser.parse_args()
