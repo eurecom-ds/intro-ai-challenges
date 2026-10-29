@@ -9,7 +9,7 @@ what your agent learns. Use a **CPU runtime** in Colab. All controls are supplie
 ## Start the activity
 
 1. Open the notebook and run its three setup cells.
-2. Inspect the 6 × 6 game and watch an untrained agent.
+2. Inspect the 15 × 15 game and watch an untrained agent.
 3. Train the 256-episode baseline, enter your name and surname, and prepare Upload 1.
 4. Enter the instructor's access code when prompted. It stays out of the saved JSON.
 5. Record at least three distinct configurations, including the baseline.
@@ -25,7 +25,7 @@ Setup 3 clears the local experiment table and selection.
 
 The snake begins with three body cells. It chooses between moving straight,
 turning left and turning right. Eating food grows its body. A wall collision,
-body collision, full board or 300 attempted moves ends a game. Moving into the
+body collision, full board or 1,500 attempted moves ends a game. Moving into the
 departing tail's cell is legal on a move without growth.
 
 A small neural network maps the board and game information to probabilities
@@ -34,7 +34,7 @@ REINFORCE uses discounted future rewards to update the policy. A separate
 value network supplies a baseline: the expected future reward from a state.
 Actions with better-than-expected outcomes receive a positive advantage.
 
-The 118 numeric inputs include the full ordered body, head, food, heading,
+The 685 numeric inputs include the full ordered body, head, food, heading,
 remaining moves, relative food position and immediate collision indicators.
 The indicators provide information; all three actions remain available.
 
@@ -103,7 +103,7 @@ trusted NumPy policy inference and scoring, `protocol.py` defines versioned
 rules and controls, and `model.py` supplies the CPU trainer. Public helper
 hashes and evaluation seeds are recorded in `data/manifest.json`.
 
-Version: `snake-v1`. Downloads use the immutable revision recorded in the
+Version: `snake-v2`. Downloads use the immutable revision recorded in the
 notebook. Setup verifies the manifest and helper hashes before loading code.
 For local Jupyter, open the notebook from this directory. NumPy, CPU PyTorch,
 Matplotlib, IPython and ipywidgets are required. Colab supplies these libraries.

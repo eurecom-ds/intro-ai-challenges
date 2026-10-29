@@ -41,7 +41,7 @@ class NotebookFlow(unittest.TestCase):
         for path in cls.bundle.glob("*.py"):
             raw = path.read_bytes()
             files[path.name] = {"path": path.name, "size_bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
-        manifest = {"challenge_version": "snake-v1", "protocol_fingerprint": protocol.protocol_fingerprint(),
+        manifest = {"challenge_version": protocol.CHALLENGE_VERSION, "protocol_fingerprint": protocol.protocol_fingerprint(),
                     "files": files, "public_seed_pairs": [list(pair) for pair in protocol.public_seed_pairs()]}
         raw = json.dumps(manifest, sort_keys=True).encode()
         (cls.bundle / "data" / "manifest.json").write_bytes(raw)
@@ -72,13 +72,13 @@ class NotebookFlow(unittest.TestCase):
 
     def fast_trainer(self, config, progress=None):
         if progress:
-            progress({"episodes": config["episodes"], "steps": 300, "seconds": 0.01})
+            progress({"episodes": config["episodes"], "steps": self.g["snake_protocol"].MAX_STEPS, "seconds": 0.01})
         policy = self.g["snake_evaluation"].zero_policy()
         apples = 2 if config["food_reward"] != 10 else 1
         validation = {"episodes": 30, "total_apples": apples, "sum_food_steps": 10 * apples,
                       "mean_apples": apples / 30, "mean_food_step": 10.0,
                       "diagnostics": {}}
-        return {"config": config, "policy": policy, "history": [], "training_steps": 300,
+        return {"config": config, "policy": policy, "history": [], "training_steps": self.g["snake_protocol"].MAX_STEPS,
                 "training_episodes": config["episodes"], "training_seconds": 0.01, "validation": validation}
 
     def mock_rendering(self):
@@ -98,7 +98,7 @@ class NotebookFlow(unittest.TestCase):
         self.assertNotIn("accelerator: GPU", source)
 
     def test_local_bundle_and_scoped_refresh(self):
-        self.assertEqual(self.g["snake_protocol"].OBSERVATION_SIZE, 118)
+        self.assertEqual(self.g["snake_protocol"].OBSERVATION_SIZE, 685)
         first = self.g["snake_model"]
         self.assertTrue(first.__name__.startswith("intro_ai_snake_"))
         exec(self.setup[1], self.g)

@@ -1,7 +1,8 @@
 # Snake instructor guide
 
-The activity trains a stochastic Snake policy on CPU using episodic REINFORCE
-with a separate Monte Carlo value baseline. Students choose signed food,
+The activity trains a stochastic policy for a 15 × 15 Snake board on CPU using
+episodic REINFORCE with a separate Monte Carlo value baseline. Each game lasts
+at most 1,500 attempted moves. Students choose signed food,
 collision, movement and distance rewards. Public and private evaluation rank
 food collected first and collection speed second.
 

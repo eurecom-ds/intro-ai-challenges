@@ -22,7 +22,7 @@
 #
 # [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/eurecom-ds/intro-ai-challenges/blob/main/snake/notebook.ipynb)
 #
-# ![Teach an AI to play Snake. 60 minutes. Colab CPU. Learn through rewards.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/a791e3fa6bcc5125d33b6b476fdcc4be6fc23116/snake/assets/overview.svg)
+# ![Teach an AI to play Snake. 60 minutes. Colab CPU. Learn through rewards.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/74c06689d95f9d7fa46ebc918dc9b12f09e7aa1e/snake/assets/overview.svg)
 #
 # How would you reward a snake for playing well? Food, survival and movement toward food each suggest a possible reward. Your choices will guide an agent as it learns from complete games.
 #
@@ -73,9 +73,9 @@ import matplotlib.pyplot as plt
 import torch
 from IPython.display import display, HTML, FileLink
 
-CHALLENGE_VERSION = "snake-v1"
-RELEASE_REVISION = "a791e3fa6bcc5125d33b6b476fdcc4be6fc23116"
-MANIFEST_SHA256 = "f5129c08a7079f940c62f80767278531c5ab07d0214ff952af88b39709658aa4"
+CHALLENGE_VERSION = "snake-v2"
+RELEASE_REVISION = "74c06689d95f9d7fa46ebc918dc9b12f09e7aa1e"
+MANIFEST_SHA256 = "6ef77a0d251f351e85b9bdf60812e0cca7cf198f9433917ba76f9622419c03bf"
 RELEASE_BASE = f"https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/{RELEASE_REVISION}/snake/"
 API_URL = str(globals().get("SNAKE_API_URL", os.environ.get(
     "SNAKE_API_URL", "https://eurecom-probai-intro-ai-leaderboard.hf.space/api/challenges/snake/submissions")))
@@ -179,7 +179,8 @@ public_seed_pairs = snake_protocol.public_seed_pairs()
 if (manifest.get("protocol_fingerprint") != protocol_fingerprint
         or manifest.get("public_seed_pairs") != [list(pair) for pair in public_seed_pairs]):
     raise ValueError("The helper code and public evaluation protocol differ. Restore one complete release.")
-print("Snake ready: 6 × 6 board, 300 moves per game, 30 public evaluation games.")
+print(f"Snake ready: {snake_protocol.BOARD_SIZE} × {snake_protocol.BOARD_SIZE} board, "
+      f"{snake_protocol.MAX_STEPS} moves per game, {snake_protocol.PUBLIC_EPISODES} public evaluation games.")
 
 
 # %% cellView="form" jupyter={"source_hidden": true}
@@ -646,9 +647,9 @@ show_notice("Ready to play", "Inspect the game, train the starting agent and pre
 
 # %% [markdown]
 # ## 1. Inspect the game
-# ![A 6 × 6 board, three actions and a growing snake.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/a791e3fa6bcc5125d33b6b476fdcc4be6fc23116/snake/assets/game.svg)
+# ![A 15 × 15 board, three actions and a growing snake.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/74c06689d95f9d7fa46ebc918dc9b12f09e7aa1e/snake/assets/game.svg)
 #
-# The snake starts with three cells. It moves straight, turns left or turns right. Eating an orange food item grows its body. Hitting a wall or its body ends the game. Each game lasts at most **300 moves**.
+# The snake starts with three cells. It moves straight, turns left or turns right. Eating an orange food item grows its body. Hitting a wall or its body ends the game. Each game lasts at most **1,500 moves**.
 #
 # The agent receives a numeric board description: the ordered body, head, food, heading, remaining moves, food offsets and immediate collision indicators. Body order tells it which cells the tail will leave next. Its three actions remain available, including actions that cause a collision.
 #
@@ -660,7 +661,7 @@ watch_untrained()
 
 # %% [markdown]
 # ## 2. Understand policy gradients and train the baseline
-# ![Train the starting agent. Record its behaviour and public evaluation.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/a791e3fa6bcc5125d33b6b476fdcc4be6fc23116/snake/assets/baseline.svg)
+# ![Train the starting agent. Record its behaviour and public evaluation.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/74c06689d95f9d7fa46ebc918dc9b12f09e7aa1e/snake/assets/baseline.svg)
 #
 # A **policy** assigns probabilities to actions from the current observation. During training, the agent samples an action, receives a reward and continues until the game ends.
 #
@@ -685,7 +686,7 @@ run_experiment(**{key: value for key, value in snake_protocol.BASELINE.items() i
 # Training rewards guide learning. Food and collection times provide the common evaluation objective.
 
 # %% [markdown]
-# ![Upload 1. Save the baseline policy, then send it for server evaluation.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/a791e3fa6bcc5125d33b6b476fdcc4be6fc23116/snake/assets/upload-baseline.svg)
+# ![Upload 1. Save the baseline policy, then send it for server evaluation.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/74c06689d95f9d7fa46ebc918dc9b12f09e7aa1e/snake/assets/upload-baseline.svg)
 # Enter your name and surname below. The cell prompts privately for the instructor's current access code. Your name and surname appear on the public course dashboard.
 
 # %% cellView="form" jupyter={"source_hidden": true}
@@ -696,7 +697,7 @@ upload_baseline(student_name, student_surname)
 
 # %% [markdown]
 # ## 3. Investigate the rewards
-# ![Predict, change one setting, train, then inspect behaviour and food collection.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/a791e3fa6bcc5125d33b6b476fdcc4be6fc23116/snake/assets/investigations.svg)
+# ![Predict, change one setting, train, then inspect behaviour and food collection.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/74c06689d95f9d7fa46ebc918dc9b12f09e7aa1e/snake/assets/investigations.svg)
 #
 # The reward after each attempted move is
 #
@@ -748,7 +749,7 @@ preview_agent(preview_seed)
 
 # %% [markdown]
 # ## 5. Select a recorded agent
-# ![Compare food collected, collection speed and observed behaviour, then select a retained agent.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/a791e3fa6bcc5125d33b6b476fdcc4be6fc23116/snake/assets/selection.svg)
+# ![Compare food collected, collection speed and observed behaviour, then select a retained agent.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/74c06689d95f9d7fa46ebc918dc9b12f09e7aa1e/snake/assets/selection.svg)
 #
 # Review the public metrics and replays. The dropdown initially selects the agent with the most food, using collection speed to break food ties. You can choose any retained agent. New experiments refresh the options while preserving your choice.
 #
@@ -761,7 +762,7 @@ show_configuration_selector()
 
 # %% [markdown]
 # ## 6. Upload the selected policy
-# ![Upload 2. Save the selected retained policy and evaluate it on private games.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/a791e3fa6bcc5125d33b6b476fdcc4be6fc23116/snake/assets/upload-selected.svg)
+# ![Upload 2. Save the selected retained policy and evaluate it on private games.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/74c06689d95f9d7fa46ebc918dc9b12f09e7aa1e/snake/assets/upload-selected.svg)
 #
 # Complete the baseline and at least three distinct configurations, then choose an agent above. Upload 2 uses its retained final weights and performs no further training. Change the dropdown to upload another retained agent.
 #
