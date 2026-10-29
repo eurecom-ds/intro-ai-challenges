@@ -51,7 +51,6 @@
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Setup 1: prepare the CPU and load libraries { display-mode: "form" }
 from datetime import datetime, timezone
-from getpass import getpass
 import hashlib
 import html
 import importlib.util
@@ -77,8 +76,6 @@ CHALLENGE_VERSION = "snake-v2"
 RELEASE_REVISION = "5f2d202e703da1308a3472f23761362980a26159"
 MANIFEST_SHA256 = "a338e99aedf8695d4dc8a1acb9fafc983aeca601aa5381f19d76cd19840c9c8e"
 RELEASE_BASE = f"https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/{RELEASE_REVISION}/snake/"
-API_URL = str(globals().get("SNAKE_API_URL", os.environ.get(
-    "SNAKE_API_URL", "https://eurecom-probai-intro-ai-leaderboard.hf.space/api/challenges/snake/submissions")))
 ROOT = Path(globals().get("SNAKE_OUTPUT_DIR", Path(tempfile.gettempdir()) / "intro-ai-snake" / "exports"))
 ROOT.mkdir(parents=True, exist_ok=True)
 CACHE_ROOT = Path(tempfile.gettempdir()) / "intro-ai-snake" / "releases" / MANIFEST_SHA256
@@ -527,10 +524,8 @@ def upload_submission(api_url, token):
 
     try:
         address = urllib.parse.urlsplit(api_url)
-        if address.scheme not in {"https", "http"} or not address.hostname or address.username or address.password:
-            raise ValueError("Use the instructor's challenge submission endpoint.")
-        if address.scheme == "http" and address.hostname not in {"localhost", "127.0.0.1", "::1"}:
-            raise ValueError("Use HTTPS for the course upload endpoint.")
+        if address.scheme not in {"https", "http"} or not address.hostname:
+            raise ValueError("Set submission_url to the instructor's challenge submission endpoint.")
         if not isinstance(token, str) or not token.strip():
             raise ValueError("Enter the instructor's current access code in Upload 1.")
         request = urllib.request.Request(api_url, data=contents, method="POST",
@@ -601,16 +596,15 @@ def upload_submission(api_url, token):
     return result
 
 
-def upload_baseline(student_name, student_surname, api_url=None, token=None):
+def upload_baseline(student_name, student_surname, api_url, token):
     global upload_identity, upload_address, upload_access_code
     try:
         identity = student_identity(student_name, student_surname)
         record = recorded_run(configuration_key(snake_protocol.BASELINE))
         if not finalize_submission(record, identity, phase="baseline"):
             return None
-        upload_identity, upload_address = identity, api_url or API_URL
-        upload_access_code = token if token is not None else getpass("Instructor's current access code: ")
-        return upload_submission(upload_address, upload_access_code)
+        upload_identity, upload_address, upload_access_code = identity, api_url, token
+        return upload_submission(api_url, token)
     except KeyboardInterrupt:
         show_notice("Upload paused", "Your JSON is saved. Run Upload 1 again when ready.", tone="attention")
     except (ValueError, TypeError, OSError) as error:
@@ -688,13 +682,16 @@ run_experiment(**{key: value for key, value in snake_protocol.BASELINE.items() i
 
 # %% [markdown]
 # ![Upload 1. Save the baseline policy, then send it for server evaluation.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/5f2d202e703da1308a3472f23761362980a26159/snake/assets/upload-baseline.svg)
-# Enter your name and surname below. The cell prompts privately for the instructor's current access code. Your name and surname appear on the public course dashboard.
+# Enter your name, surname and the current code from your instructor. Keep the supplied address unless your instructor gives you another one. Upload 2 reuses these fields. Your name and surname appear on the public course dashboard.
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Upload 1: save and upload the starting agent { display-mode: "form" }
-student_name = "" # @param {type:"string"}
-student_surname = "" # @param {type:"string"}
-upload_baseline(student_name, student_surname)
+# @markdown Enter your name, surname, submission URL and the current code from your instructor. Upload 2 reuses these fields.
+name = "" # @param {type:"string"}
+surname = "" # @param {type:"string"}
+submission_url = "https://eurecom-probai-intro-ai-leaderboard.hf.space/api/challenges/snake/submissions" # @param {type:"string"}
+access_code = "" # @param {type:"string"}
+upload_baseline(name, surname, submission_url, access_code)
 
 # %% [markdown]
 # ## 3. Investigate the rewards
@@ -766,6 +763,8 @@ show_configuration_selector()
 # ![Upload 2. Save the selected retained policy and evaluate it on private games.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/5f2d202e703da1308a3472f23761362980a26159/snake/assets/upload-selected.svg)
 #
 # Complete the baseline and at least three distinct configurations, then choose an agent above. Upload 2 uses its retained final weights and performs no further training. Change the dropdown to upload another retained agent.
+#
+# Upload 2 reuses your details from Upload 1. To correct your name, surname, address or access code, edit the fields in Upload 1 and run it again. Your retained agents stay available for selection.
 #
 # The JSON contains numeric policy weights, reported settings and public metrics. The server runs the trusted game simulator and computes the ranked private metrics.
 #

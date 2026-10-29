@@ -11,7 +11,7 @@ what your agent learns. Use a **CPU runtime** in Colab. All controls are supplie
 1. Open the notebook and run its three setup cells.
 2. Inspect the 15 × 15 game and watch an untrained agent.
 3. Train the 256-episode baseline, enter your name and surname, and prepare Upload 1.
-4. Enter the instructor's access code when prompted. It stays out of the saved JSON.
+4. Enter the instructor's code in the `access_code` field in Upload 1. Keep the supplied `submission_url` unless your instructor gives you another one. The code stays out of the saved JSON.
 5. Record at least three distinct configurations, including the baseline.
 6. Compare one setting at a time. Predict the behaviour before training, then inspect the replay and public evaluation results.
 7. Select a retained agent from the dropdown and run Upload 2.
@@ -86,6 +86,10 @@ so use the common evaluation metrics to compare configurations.
 The dropdown initially selects the best public result, preserves your choice
 as new runs appear, and uploads that retained final actor without additional
 training. Changing a replay seed leaves the recorded score and policy intact.
+
+Upload 2 reuses your name, surname, submission URL and access code from Upload 1.
+To correct those values, edit the fields in Upload 1 and run it again. Your
+retained agents stay available for selection.
 
 Both uploads save a `snake_<name-slug>_<hash>.json` file. If the service is
 unavailable, download it for the dashboard's manual upload form. An unchanged
