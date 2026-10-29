@@ -78,8 +78,8 @@ import torch
 from IPython.display import display, HTML, FileLink
 
 CHALLENGE_VERSION = "snake-v2"
-RELEASE_REVISION = "5f2d202e703da1308a3472f23761362980a26159"
-MANIFEST_SHA256 = "a338e99aedf8695d4dc8a1acb9fafc983aeca601aa5381f19d76cd19840c9c8e"
+RELEASE_REVISION = "1970d484d99f84d8da1808d63dffd2fbaf49b6ef"
+MANIFEST_SHA256 = "5fbe10fe06143e8aa114a15ca4e05c2bed664006784b79e1c2e0c8e0272c40c2"
 RELEASE_BASE = f"https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/{RELEASE_REVISION}/snake/"
 ROOT = Path(globals().get("SNAKE_OUTPUT_DIR", Path(tempfile.gettempdir()) / "intro-ai-snake" / "exports"))
 ROOT.mkdir(parents=True, exist_ok=True)
@@ -732,7 +732,7 @@ upload_baseline(name, surname, submission_url, access_code);
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Choose rewards and settings, then train an experiment { display-mode: "form" }
-episodes = 8192 # @param [256, 4096, 8192, 16384] {type:"raw"}
+episodes = 8192 # @param [256, 4096, 8192, 16384, 32768, 65536] {type:"raw"}
 food_reward = 10 # @param {type:"number"}
 collision_reward = -10 # @param {type:"number"}
 move_reward = -0.01 # @param {type:"number"}

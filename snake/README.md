@@ -16,10 +16,10 @@ what your agent learns. Use a **CPU runtime** in Colab. All controls are supplie
 6. Compare one setting at a time. Predict the behaviour before training, then inspect the replay and public evaluation results.
 7. Select a retained agent from the dropdown and run Upload 2.
 
-The longer reference trains for 8,192 episodes. The controls also offer 4,096
-and 16,384 episodes. Every run starts from the same initialization seed and
-retains its final actor. Repeating a configuration counts once. Resetting
-Setup 3 clears the local experiment table and selection.
+The longer reference trains for 8,192 episodes. The controls also offer 4,096,
+16,384, 32,768 and 65,536 episodes. Every run starts from the same
+initialization seed and retains its final actor. Repeating a configuration
+counts once. Resetting Setup 3 clears the local experiment table and selection.
 
 ## The game and the policy
 
