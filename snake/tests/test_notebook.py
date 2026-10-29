@@ -33,7 +33,8 @@ class NotebookFlow(unittest.TestCase):
         cls.directory = Path(cls.temporary.name)
         cls.bundle = cls.directory / "bundle"
         (cls.bundle / "data").mkdir(parents=True)
-        for name in ("protocol.py", "environment.py", "evaluator.py", "model.py"):
+        for name in ("protocol.py", "environment.py", "evaluator.py", "model.py",
+                     "torch_environment.py", "numba_environment.py"):
             shutil.copyfile(ROOT / name, cls.bundle / name)
         sys.path.insert(0, str(ROOT))
         import protocol
@@ -104,8 +105,14 @@ class NotebookFlow(unittest.TestCase):
         exec(self.setup[1], self.g)
         self.assertIsNot(self.g["snake_model"], first)
         self.assertEqual(self.g["protocol_fingerprint"], self.g["manifest"]["protocol_fingerprint"])
-        for filename in ("protocol.py", "environment.py", "evaluator.py", "model.py"):
+        for filename in ("protocol.py", "environment.py", "evaluator.py", "model.py",
+                         "torch_environment.py", "numba_environment.py"):
             self.assertEqual((self.g["CACHE_ROOT"] / filename).read_bytes(), (self.bundle / filename).read_bytes())
+
+    def test_default_setup_keeps_optional_compilers_unloaded(self):
+        package = self.g["snake_model"].__package__
+        self.assertNotIn(package + ".torch_environment", sys.modules)
+        self.assertNotIn(package + ".numba_environment", sys.modules)
 
     def test_hash_failure_preserves_cached_bytes(self):
         path = self.g["CACHE_ROOT"] / "model.py"

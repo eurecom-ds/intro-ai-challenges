@@ -103,6 +103,10 @@ trusted NumPy policy inference and scoring, `protocol.py` defines versioned
 rules and controls, and `model.py` supplies the CPU trainer. Public helper
 hashes and evaluation seeds are recorded in `data/manifest.json`.
 
+The optional `torch_environment.py` and `numba_environment.py` helpers support
+instructor CPU benchmarks. They load when their backend is selected; the
+student notebook uses the reference simulator by default.
+
 Version: `snake-v2`. Downloads use the immutable revision recorded in the
 notebook. Setup verifies the manifest and helper hashes before loading code.
 For local Jupyter, open the notebook from this directory. NumPy, CPU PyTorch,

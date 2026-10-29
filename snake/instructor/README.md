@@ -18,9 +18,9 @@ python snake/instructor/prepare.py public
 ```
 
 The public manifest records the challenge version, protocol fingerprint,
-public evaluation seeds and SHA-256 hashes of all four helpers. Run the
-commands with NumPy installed. The protocol fingerprint binds the rules,
-observation order and the three trusted source modules.
+public evaluation seeds and SHA-256 hashes of the required and optional CPU
+helpers. Run the commands with NumPy installed. The protocol fingerprint binds
+the rules, observation order and the three trusted source modules.
 
 Commit the prepared helpers and manifest. Pin the notebook's
 `RELEASE_REVISION` to that immutable commit and `MANIFEST_SHA256` to its
@@ -108,3 +108,51 @@ the normal pinned download path separately.
 The server evaluates every policy on the same private games. Repeated uploads
 therefore provide feedback against that fixed evaluation set. Select models
 using the public evidence and discuss observations with students.
+
+## Optional CPU simulator backends
+
+The trainer supports `backend="reference"`, `"torch_eager"`, `"torch_compile"`
+and `"numba"`. The notebook uses the reference backend by default. The other
+backends are instructor experiments; they preserve the game, policy network,
+32-game batches, action sampling and policy-gradient updates.
+
+The tensor simulators store fixed-size body-age grids and mask completed games.
+They precompute each game's food ranks from its canonical PCG64 stream.
+Parity checks compare observations, transitions, rewards, trajectories and
+retained actors. The trusted NumPy leaderboard evaluator stays independent of
+the training backend.
+
+Run a comparison with a retained instructor actor. The command below measures
+three warm collection repeats, cold compilation and two or three complete
+training runs:
+
+```bash
+uv run --no-project --with numpy --with torch --with numba \
+  python snake/instructor/benchmark_cpu.py \
+  --output /private/tmp/snake-cpu-benchmark \
+  --policy /private/tmp/instructor-policy.json \
+  --batches 16 --repeats 3 --train-episodes 8192 --fresh-cache
+```
+
+Omit `--policy` to use an untrained actor. For representative long games,
+provide a trained numeric checkpoint. Timing excludes trajectory hashing;
+complete training timing includes collection, updates and public evaluation.
+The JSON report records versions, source hashes, first-call costs, warmed
+throughput and policy parity. Compilation costs should be considered alongside
+the number of experiments in a runtime.
+
+The PyTorch compiler backend requires a working C++ compiler and OpenMP runtime.
+Numba is an optional dependency, loaded only when its backend is selected.
+Numba keeps compiled specializations warm within the process. Its disk cache
+is disabled so local, package and release-scoped notebook imports remain
+independent.
+For an individual instructor experiment:
+
+```python
+checkpoint = model.train_policy(config, backend="numba")
+print(checkpoint["training_seconds"], checkpoint["compile_seconds"])
+```
+
+Backends and compilation timing are checkpoint metadata. The submitted model
+settings and grading protocol retain the same format. Rehearse optional
+backends in the intended Colab CPU runtime before using them in class.
