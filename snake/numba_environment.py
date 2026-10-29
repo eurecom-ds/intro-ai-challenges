@@ -26,6 +26,17 @@ EVENT_NAMES = ("food", "collision", "move", "distance")
 _AGES = np.arange(CELLS + 1, dtype=np.float32) / CELLS
 _REMAINING = np.asarray([(HORIZON - move) / HORIZON for move in range(HORIZON + 1)], dtype=np.float32)
 _OFFSETS = np.asarray([offset / (SIZE - 1) for offset in range(1 - SIZE, SIZE)], dtype=np.float32)
+_NEIGHBORS = np.full((CELLS, 4), -1, dtype=np.int32)
+for _cell in range(CELLS):
+    _row, _column = divmod(_cell, SIZE)
+    if _row:
+        _NEIGHBORS[_cell, 0] = _cell - SIZE
+    if _column + 1 < SIZE:
+        _NEIGHBORS[_cell, 1] = _cell + 1
+    if _row + 1 < SIZE:
+        _NEIGHBORS[_cell, 2] = _cell + SIZE
+    if _column:
+        _NEIGHBORS[_cell, 3] = _cell - 1
 
 
 class ArrayState(NamedTuple):
@@ -36,6 +47,65 @@ class ArrayState(NamedTuple):
     length: np.ndarray
     steps: np.ndarray
     reason: np.ndarray
+
+
+@njit(cache=False)
+def _tail_connected_impl(observations, neighbors, tail_value):
+    count = observations.shape[0]
+    connected = np.zeros(count, dtype=np.uint8)
+    queue = np.empty(CELLS, dtype=np.int32)
+    visited = np.zeros(CELLS, dtype=np.int64)
+    for index in range(count):
+        head = -1
+        tail = -1
+        for cell in range(CELLS):
+            if observations[index, CELLS + cell] == 1:
+                head = cell
+            if observations[index, cell] == tail_value:
+                tail = cell
+            if head >= 0 and tail >= 0:
+                break
+        if head < 0 or tail < 0:
+            raise ValueError("Each observation must contain a head and an age-one tail cell.")
+        if head == tail:
+            connected[index] = 1
+            continue
+        stamp = index + 1
+        visited[head] = stamp
+        queue[0] = head
+        first = 0
+        last = 1
+        reached = False
+        while first < last and not reached:
+            cell = queue[first]
+            first += 1
+            for direction in range(4):
+                following = neighbors[cell, direction]
+                if following < 0 or visited[following] == stamp:
+                    continue
+                visited[following] = stamp
+                if following == tail:
+                    connected[index] = 1
+                    reached = True
+                    break
+                if observations[index, following] == 0:
+                    queue[last] = following
+                    last += 1
+    return connected
+
+
+def tail_connected_batch(observations):
+    """Find static head-to-tail paths through free cells for each observation.
+
+    The head and current tail are traversable; other body cells are blocked.
+    The result is a uint8 flag per observation, with input arrays preserved.
+    """
+    observations = np.asarray(observations)
+    if observations.ndim != 2 or observations.shape[1] != protocol.OBSERVATION_SIZE:
+        raise ValueError(f"Provide an N-by-{protocol.OBSERVATION_SIZE} Snake observation array.")
+    if observations.dtype != np.float32:
+        observations = observations.astype(np.float32)
+    return _tail_connected_impl(observations, _NEIGHBORS, _AGES[1])
 
 
 def from_states(states, rngs):

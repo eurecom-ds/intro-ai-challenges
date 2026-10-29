@@ -1,7 +1,8 @@
 """CPU episodic policy gradients for the Snake classroom activity.
 
 The actor is updated once after each batch of complete games. A separate
-network fits Monte Carlo reward-to-go and supplies the next batch's baseline.
+network fits potential-shaped Monte Carlo reward-to-go and supplies the next
+batch's baseline.
 """
 
 from contextlib import contextmanager
@@ -25,6 +26,7 @@ BATCH_EPISODES = 32
 BASELINE_LEARNING_RATE = 0.001
 MAX_GRAD_NORM = 1.0
 VALIDATION_BATCH_INTERVAL = 16
+POTENTIAL_STRENGTH = 1.0
 ARCHITECTURE = protocol.ARCHITECTURE
 BACKENDS = ("reference", "torch_eager", "torch_compile", "numba")
 _TORCH_KERNELS = {}
@@ -206,13 +208,13 @@ def reset_torch_kernel_cache():
 
 
 def _numba_environment():
-    """Load the optional NumPy/Numba training environment on demand."""
+    """Load compiled Snake transitions and potential calculations on demand."""
     name = (__package__ + ".numba_environment") if __package__ else "numba_environment"
     try:
         return importlib.import_module(name)
     except ModuleNotFoundError as error:
         if error.name == "numba":
-            raise RuntimeError("Install the optional numba package before using the numba backend.") from error
+            raise RuntimeError("Install numba before training the Snake model.") from error
         raise
 
 
@@ -255,6 +257,35 @@ def get_numba_kernel(count=BATCH_EPISODES):
 def reset_numba_kernel_cache():
     """Discard Numba wrappers; a fresh process measures compiler startup."""
     _NUMBA_KERNELS.clear()
+
+
+def apply_potential_shaping(batch, gamma, strength=POTENTIAL_STRENGTH):
+    """Apply the terminal-zero tail-connectivity potential to complete games.
+
+    For Phi(s) equal to strength when the head can reach the tail, the shaping
+    reward gamma*Phi(next)-Phi(s) gives shaped return G(t)-Phi(s_t). Terminal
+    potential is zero for collisions, board completion and the move limit.
+    """
+    if not math.isfinite(strength) or strength < 0:
+        raise ValueError("Use a finite nonnegative potential strength.")
+    batch["base_mean_return"] = batch["mean_return"]
+    if strength == 0:
+        batch["reward_components"] = {**batch["reward_components"], "potential_shaping": 0.0}
+        return batch
+    connected = _numba_environment().tail_connected_batch(batch["observations"])
+    lengths = np.asarray(batch["lengths"], dtype=np.int64)
+    if lengths.ndim != 1 or not len(lengths) or np.any(lengths <= 0) or int(lengths.sum()) != len(connected):
+        raise ValueError("Potential shaping requires complete, nonempty episodes.")
+    starts = np.concatenate(([0], np.cumsum(lengths[:-1])))
+    connected = connected.astype(np.float64)
+    initial = connected[starts]
+    totals = np.add.reduceat(connected, starts)
+    shaping_sums = strength * (-initial + (gamma - 1) * (totals - initial))
+    shaping_mean = float(shaping_sums.mean())
+    batch["returns"] = (batch["returns"].astype(np.float64) - strength * connected).astype(np.float32)
+    batch["mean_return"] += shaping_mean
+    batch["reward_components"] = {**batch["reward_components"], "potential_shaping": shaping_mean}
+    return batch
 
 
 def _recorded_batch(config, observations, actions, events, valid, lengths, reasons, entropy_sum):
@@ -376,6 +407,7 @@ def train_policy(config=None, progress=None, seed=None, evaluation_seed_pairs=No
     if not isinstance(backend, str) or backend not in BACKENDS:
         raise ValueError(f"Choose backend from {list(BACKENDS)}.")
     config = protocol.settings(**(config or {}))
+    potential_strength = POTENTIAL_STRENGTH
     training_seed = config.get("seed", 42) if seed is None else seed
     if isinstance(training_seed, bool) or not isinstance(training_seed, int) or not 0 <= training_seed < 2**32:
         raise ValueError("Use an integer instructor seed from 0 to 2**32 - 1.")
@@ -418,6 +450,7 @@ def train_policy(config=None, progress=None, seed=None, evaluation_seed_pairs=No
             else:
                 batch = collect_episodes_torch(actor, config, environment_rng, action_generator,
                                                backend=backend, kernel=kernel)
+            batch = apply_potential_shaping(batch, config["gamma"], potential_strength)
             x = torch.from_numpy(batch["observations"])
             chosen = torch.from_numpy(batch["actions"])
             returns = torch.from_numpy(batch["returns"])
@@ -442,6 +475,7 @@ def train_policy(config=None, progress=None, seed=None, evaluation_seed_pairs=No
             total_steps += int(batch["lengths"].sum())
             row = {"batch": batch_number, "episodes": batch_number * BATCH_EPISODES,
                    "steps": total_steps, "training_return": batch["mean_return"],
+                   "base_training_return": batch["base_mean_return"],
                    "reward_components": batch["reward_components"], "training_apples": batch["mean_apples"],
                    "mean_episode_steps": batch["mean_steps"], "collision_fraction": batch["collision_fraction"],
                    "entropy": batch["entropy"], "policy_loss": float(policy_objective.detach()),
@@ -458,4 +492,5 @@ def train_policy(config=None, progress=None, seed=None, evaluation_seed_pairs=No
             "training_seed": training_seed, "training_episodes": config["episodes"],
             "training_steps": total_steps, "training_seconds": time.perf_counter() - start,
             "backend": backend, "compile_seconds": (kernel.compile_seconds - compile_before) if kernel else 0.0,
+            "potential_strength": potential_strength,
             "validation": history[-1]["validation"]}

@@ -24,7 +24,7 @@ TRAINING_SEED = 42
 BATCH_SIZE = 32
 EPISODES = (256, 4096, 8192, 16384, 32768, 65536)
 LEARNING_RATES = (0.0001, 0.0003, 0.001, 0.003, 0.01)
-GAMMAS = (0.0, 0.5, 0.9, 0.95, 0.99, 1.0)
+GAMMAS = (0.0, 0.5, 0.9, 0.95, 0.99, 0.999, 1.0)
 PUBLIC_EPISODES = 30
 PRIVATE_EPISODES = 100
 DEMO_SEED_PAIR = (670_001, 670_002)
@@ -44,8 +44,8 @@ def _number(value, name):
     return 0.0 if result == 0 else result
 
 
-def settings(episodes=8192, learning_rate=0.001, gamma=0.99, food_reward=10.0,
-             collision_reward=-10.0, move_reward=-0.01, distance_reward=0.0,
+def settings(episodes=65536, learning_rate=0.003, gamma=0.999, food_reward=10.0,
+             collision_reward=-10.0, move_reward=-0.01, distance_reward=1.0,
              seed=TRAINING_SEED, *, instructor=False):
     """Validate controls; instructor rehearsals can use another training seed."""
     if isinstance(episodes, (bool, np.bool_)) or not isinstance(episodes, (int, np.integer)) or episodes not in EPISODES:
