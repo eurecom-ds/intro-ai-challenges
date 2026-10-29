@@ -8,17 +8,18 @@ from pathlib import Path
 
 import numpy as np
 
-CHALLENGE_VERSION = "snake-v1"
-BOARD_SIZE = 6
+CHALLENGE_VERSION = "snake-v2"
+BOARD_SIZE = 15
 BOARD_CELLS = BOARD_SIZE ** 2
 INITIAL_LENGTH = 3
-MAX_STEPS = 300
-OBSERVATION_SIZE = 118
-ARCHITECTURE = "mlp-118-64-64-3-relu-v1"
+MAX_APPLES = BOARD_CELLS - INITIAL_LENGTH
+MAX_STEPS = 1500
+OBSERVATION_SIZE = 3 * BOARD_CELLS + 10
+ARCHITECTURE = f"mlp-{OBSERVATION_SIZE}-64-64-3-relu-v2"
 ACTION_NAMES = ("straight", "left", "right")
-LAYER_SHAPES = ((64, 118), (64, 64), (3, 64))
+LAYER_SHAPES = ((64, OBSERVATION_SIZE), (64, 64), (3, 64))
 MAX_PARAMETER = 1_000_000.0
-MAX_JSON_BYTES = 512 * 1024
+MAX_JSON_BYTES = 2 * 1024 * 1024
 TRAINING_SEED = 42
 BATCH_SIZE = 32
 EPISODES = (256, 4096, 8192, 16384)
@@ -101,8 +102,9 @@ def protocol_definition():
             "initial_length": INITIAL_LENGTH, "max_steps": MAX_STEPS,
             "actions": list(ACTION_NAMES), "heading": ["up", "right", "down", "left"],
             "observation_size": OBSERVATION_SIZE,
-            "observation_order": ["body_age/36", "head", "food", "heading_one_hot",
-                                  "remaining_steps/300", "food_row_offset/5", "food_col_offset/5",
+            "observation_order": [f"body_age/{BOARD_CELLS}", "head", "food", "heading_one_hot",
+                                  f"remaining_steps/{MAX_STEPS}", f"food_row_offset/{BOARD_SIZE - 1}",
+                                  f"food_col_offset/{BOARD_SIZE - 1}",
                                   "collision_straight", "collision_left", "collision_right"],
             "architecture": ARCHITECTURE, "parameter_dtype": "float32",
             "inference_dtype": "float64", "sampling": "PCG64-uniform-cdf",

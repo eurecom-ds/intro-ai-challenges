@@ -1,4 +1,4 @@
-"""The 6 × 6 Snake game and its full numeric observation."""
+"""The 15 × 15 Snake game and its full numeric observation."""
 from __future__ import annotations
 
 from typing import NamedTuple
@@ -31,7 +31,7 @@ def _placements():
     for heading, (dr, dc) in enumerate(DIRECTIONS):
         for row in range(BOARD_SIZE):
             for col in range(BOARD_SIZE):
-                cells = [(row - j * dr, col - j * dc) for j in (2, 1, 0)]
+                cells = [(row - j * dr, col - j * dc) for j in reversed(range(protocol.INITIAL_LENGTH))]
                 if all(0 <= r < BOARD_SIZE and 0 <= c < BOARD_SIZE for r, c in cells):
                     result.append((tuple(r * BOARD_SIZE + c for r, c in cells), heading))
     return tuple(result)
@@ -101,20 +101,21 @@ def training_reward(events, settings):
 def observe_batch(states):
     """Encode the documented planes and features in row-major order."""
     result = np.zeros((len(states), OBSERVATION_SIZE), dtype=np.float32)
+    auxiliary = 3 * BOARD_CELLS
     for index, state in enumerate(states):
         result[index, list(state.body)] = np.arange(1, len(state.body) + 1, dtype=np.float32) / BOARD_CELLS
         result[index, BOARD_CELLS + state.body[-1]] = 1
         if state.food is not None:
             result[index, 2 * BOARD_CELLS + state.food] = 1
-        result[index, 108 + state.heading] = 1
-        result[index, 112] = max(0, MAX_STEPS - state.step_count) / MAX_STEPS
+        result[index, auxiliary + state.heading] = 1
+        result[index, auxiliary + 4] = max(0, MAX_STEPS - state.step_count) / MAX_STEPS
         if state.food is not None:
             head_row, head_col = divmod(state.body[-1], BOARD_SIZE)
             food_row, food_col = divmod(state.food, BOARD_SIZE)
-            result[index, 113] = (food_row - head_row) / (BOARD_SIZE - 1)
-            result[index, 114] = (food_col - head_col) / (BOARD_SIZE - 1)
+            result[index, auxiliary + 5] = (food_row - head_row) / (BOARD_SIZE - 1)
+            result[index, auxiliary + 6] = (food_col - head_col) / (BOARD_SIZE - 1)
         for action in range(3):
-            result[index, 115 + action] = int(_destination(state, action)[2] is not None)
+            result[index, auxiliary + 7 + action] = int(_destination(state, action)[2] is not None)
     return result
 
 

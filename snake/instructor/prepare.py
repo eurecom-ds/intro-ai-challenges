@@ -32,7 +32,7 @@ def entry(path, relative):
 def prepare_public():
     files = {name: entry(ROOT / name, name)
              for name in ("environment.py", "evaluator.py", "protocol.py", "model.py")}
-    manifest = {"challenge_version": "snake-v1", "protocol_fingerprint": protocol.protocol_fingerprint(),
+    manifest = {"challenge_version": protocol.CHALLENGE_VERSION, "protocol_fingerprint": protocol.protocol_fingerprint(),
                 "files": files, "public_seed_pairs": protocol.public_seed_pairs(),
                 "release_status": "pending_instructor_colab_rehearsal"}
     path = ROOT / "data" / "manifest.json"
@@ -53,7 +53,7 @@ def prepare_private(directory):
     demo = getattr(protocol, "DEMO_SEED_PAIR", ())
     occupied.update(int(seed) for seed in demo)
     pairs = []
-    for _ in range(100):
+    for _ in range(protocol.PRIVATE_EPISODES):
         pair = []
         for _ in range(2):
             while True:
@@ -65,8 +65,8 @@ def prepare_private(directory):
         pairs.append(pair)
     write_json(seed_path, pairs)
     seed_path.chmod(0o600)
-    manifest = {"challenge_version": "snake-v1", "protocol_fingerprint": protocol.protocol_fingerprint(),
-                "evaluation_episodes": 100, "horizon": 300,
+    manifest = {"challenge_version": protocol.CHALLENGE_VERSION, "protocol_fingerprint": protocol.protocol_fingerprint(),
+                "evaluation_episodes": protocol.PRIVATE_EPISODES, "horizon": protocol.MAX_STEPS,
                 "files": {"seeds": entry(seed_path, "private_seeds.json")}}
     write_json(manifest_path, manifest)
     manifest_path.chmod(0o600)

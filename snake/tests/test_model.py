@@ -30,7 +30,7 @@ class EstimatorTests(unittest.TestCase):
         with model._cpu_randomness(42):
             actor = model.PolicyNetwork()
             baseline = model.ValueNetwork()
-        inputs = torch.ones(3, 118)
+        inputs = torch.ones(3, protocol.OBSERVATION_SIZE)
         np.testing.assert_array_equal(baseline(inputs).detach().numpy(), [0, 0, 0])
         actor_before = [parameter.detach().clone() for parameter in actor.parameters()]
         optimizer = torch.optim.Adam(baseline.parameters(), lr=.001)

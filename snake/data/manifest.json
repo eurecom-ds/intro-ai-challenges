@@ -1,28 +1,28 @@
 {
-  "challenge_version": "snake-v1",
+  "challenge_version": "snake-v2",
   "files": {
     "environment.py": {
       "path": "environment.py",
-      "sha256": "7cda079745d2feee53adb459b1613a3b576c522d6ece5456ad845da9c21f58bd",
-      "size_bytes": 5173
+      "sha256": "7397bbd70de66f377c564b0a2dabe776206ba7fb5f5465dbcf1adff1b269b2c2",
+      "size_bytes": 5284
     },
     "evaluator.py": {
       "path": "evaluator.py",
-      "sha256": "076756b32ff100d35aada1ed34aa6214f2c4596c5afedd24c127b07d586ec7b4",
-      "size_bytes": 6496
+      "sha256": "7b2b93edbe8e252e2f522793cfca5548018947c86beed37b38235bc65b132ca9",
+      "size_bytes": 6268
     },
     "model.py": {
       "path": "model.py",
-      "sha256": "ba4af58a2f554196bad83f750cc05e2457340a2be9be4d7a11d609eeae7f129e",
-      "size_bytes": 11773
+      "sha256": "4afad5caa2d0a0e2501e47a95a32b3310ecac01f163ab68547d4255215631e70",
+      "size_bytes": 11813
     },
     "protocol.py": {
       "path": "protocol.py",
-      "sha256": "0f7dc5fb8bbcb77190e977f5dce72015e5ab0c069198bf3dd7936f158dfbda85",
-      "size_bytes": 5766
+      "sha256": "d8b8cf7f8e2f4833ed2bf5b75d795b0819bb212c43f48e9f9223d678d8668115",
+      "size_bytes": 5948
     }
   },
-  "protocol_fingerprint": "cdac99f1f3aa614e2f7f40d2ec842c534d54851e14617b5398742ff80b0da952",
+  "protocol_fingerprint": "574634737fea7cb822c831ddf35392976307a0d11137e40b4b8ee7bf16bf22bd",
   "public_seed_pairs": [
     [
       630000,

@@ -34,10 +34,6 @@ def validate_policy(value):
                 raw = np.asarray(layer[name])
                 if raw.dtype.kind not in "iuf" or raw.shape != expected:
                     raise ValueError
-                # Mixed JSON booleans and numbers otherwise coerce to floats.
-                if any(isinstance(item, (bool, np.bool_))
-                       for item in np.asarray(layer[name], dtype=object).flat):
-                    raise ValueError
                 array = np.asarray(raw, dtype=np.float64)
             except (ValueError, TypeError, OverflowError):
                 raise ValueError(f"Policy layer {index} {name} must be a numeric array with shape {list(expected)}.") from None
@@ -58,7 +54,7 @@ def policy_probabilities(policy, observations, *, validated=False):
     policy = policy if validated else validate_policy(policy)
     values = np.asarray(observations, dtype=np.float64)
     if values.ndim != 2 or values.shape[1] != protocol.OBSERVATION_SIZE or not np.isfinite(values).all():
-        raise ValueError("Policy observations must be a finite [N,118] matrix.")
+        raise ValueError(f"Policy observations must be a finite [N,{protocol.OBSERVATION_SIZE}] matrix.")
     for index, layer in enumerate(policy["layers"]):
         values = values @ layer["weight"].T + layer["bias"]
         if index < 2:

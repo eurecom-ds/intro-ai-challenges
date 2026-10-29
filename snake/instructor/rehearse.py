@@ -35,6 +35,8 @@ def run_rehearsal(output, episodes=8192, seeds=(42, 43, 44), profiles=None):
         "machine": platform.machine(), "numpy": np.__version__, "torch": torch.__version__,
         "training_threads": 1, "batch_episodes": model.BATCH_EPISODES,
         "evaluation_games": 100, "protocol_fingerprint": protocol.protocol_fingerprint(),
+        "challenge_version": protocol.CHALLENGE_VERSION, "board_size": protocol.BOARD_SIZE,
+        "max_steps": protocol.MAX_STEPS, "observation_size": protocol.OBSERVATION_SIZE,
     }, indent=2), encoding="utf-8")
     public_pairs = protocol.public_seed_pairs()
     # Separate instructor games test the learning result beyond public selection.

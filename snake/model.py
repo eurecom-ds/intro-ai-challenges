@@ -24,13 +24,13 @@ BATCH_EPISODES = 32
 BASELINE_LEARNING_RATE = 0.001
 MAX_GRAD_NORM = 1.0
 VALIDATION_BATCH_INTERVAL = 16
-ARCHITECTURE = "mlp-118-64-64-3-relu-v1"
+ARCHITECTURE = protocol.ARCHITECTURE
 
 
 class PolicyNetwork(nn.Module):
     def __init__(self):
         super().__init__()
-        self.layers = nn.Sequential(nn.Linear(118, 64), nn.ReLU(),
+        self.layers = nn.Sequential(nn.Linear(protocol.OBSERVATION_SIZE, 64), nn.ReLU(),
                                     nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, 3))
         for layer in self.layers:
             if isinstance(layer, nn.Linear):
@@ -45,7 +45,7 @@ class PolicyNetwork(nn.Module):
 class ValueNetwork(nn.Module):
     def __init__(self):
         super().__init__()
-        self.layers = nn.Sequential(nn.Linear(118, 64), nn.ReLU(),
+        self.layers = nn.Sequential(nn.Linear(protocol.OBSERVATION_SIZE, 64), nn.ReLU(),
                                     nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, 1))
         for layer in self.layers:
             if isinstance(layer, nn.Linear):
