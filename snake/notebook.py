@@ -35,12 +35,12 @@
 # | 0–8 | Connect a CPU, inspect the game and watch an untrained agent. |
 # | 8–15 | Train the starting agent and prepare Upload 1. |
 # | 15–22 | Compare short and longer training. |
-# | 22–34 | Investigate food and collision rewards. |
-# | 34–46 | Investigate movement and distance rewards. |
+# | 22–34 | Compare reward goals: food, survival, speed or collision avoidance. |
+# | 34–46 | Investigate learning rate and the discount factor. |
 # | 46–53 | Review behaviours and choose a recorded agent. |
 # | 53–60 | Prepare Upload 2 and explain your comparisons. |
 #
-# Complete the baseline and **at least three distinct configurations**. The six suggested experiments offer different questions to investigate.
+# Complete the baseline and **at least three distinct configurations**. The suggested experiments cover reward design, training time, learning rate and the discount factor.
 
 # %% [markdown]
 # ## Setup
@@ -708,7 +708,7 @@ access_code = "" # @param {type:"string"}
 _ = upload_baseline(name, surname, submission_url, access_code)
 
 # %% [markdown]
-# ## 3. Investigate the rewards
+# ## 3. Investigate rewards and learning settings
 # ![Predict, change one setting, train, then inspect behaviour and food collection.](https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/5f2d202e703da1308a3472f23761362980a26159/snake/assets/investigations.svg)
 #
 # The base reward after each attempted move is
@@ -722,30 +722,34 @@ _ = upload_baseline(name, surname, submission_url, access_code)
 #
 # The two indicators equal 1 when food is eaten or a collision occurs. The move reward applies on every attempt, including a collision. Distance progress is the decrease in **Manhattan distance**, the number of horizontal and vertical moves to the current food. A move closer gives +1; a move farther gives −1. On an eating move, progress uses the food's old position before replacement food appears. Collision progress is zero.
 #
-# Training also uses a fixed **potential-based shaping** term. Let $s_t$ be the game state before a move. The potential $\Phi(s_t)$ is **1** when a path through free cells connects the head to the current tail, and **0** otherwise. This static path check treats the head and tail as traversable and blocks the other body cells. Every terminal state has potential **0**.
-#
-# $$
-# r_t^{\mathrm{train}}=r_t^{\mathrm{base}}+\gamma\Phi(s_{t+1})-\Phi(s_t).
-# $$
-#
-# For a complete game, this changes the discounted reward-to-go $G_t$ into $G_t-\Phi(s_t)$. Both the policy update and the learned value baseline use that shaped return. The shaping strength stays fixed at **1** during all comparisons. Evaluation continues to count food and food-collection moves.
-#
 # Every reward control accepts positive, zero and negative values. Before changing a value, predict the behaviour it could encourage. Train, watch a preview and compare public food collection.
 #
-# | Suggested run | Training games | Food | Collision | Move | Distance | Question |
-# |---|---:|---:|---:|---:|---:|---|
-# | Starting agent | 256 | 10 | −10 | −0.01 | 1 | What does short training achieve? |
-# | Reference | 16384 | 10 | −10 | −0.01 | 1 | What changes with more experience? |
-# | Food | 16384 | 1 | −10 | −0.01 | 1 | How does a smaller food reward change behaviour? |
-# | Collision | 16384 | 10 | 0 | −0.01 | 1 | What happens when collisions have no direct penalty? |
-# | Movement | 16384 | 10 | −10 | +0.1 | 1 | What behaviour earns movement rewards? |
-# | Distance | 16384 | 10 | −10 | −0.01 | 0 | How does learning change when distance progress has zero weight? |
+# Start with the **reference**: **16,384 games**, learning rate **0.003**, γ **0.999**, food reward **10**, collision reward **−10**, move reward **−0.01** and distance reward **1**. Compare its result with the 256-game starting agent.
 #
-# Use learning rate **0.003** and γ **0.999** for these comparisons. Change one setting at a time from the reference configuration. The controls also offer shorter budgets for exploratory runs.
+# Choose a question from either table. Each row changes **one setting from the reference**. Reset the other controls before each run so changes from earlier experiments do not accumulate.
 #
-# Complete **at least three distinct configurations, including the starting agent**. The remaining suggested runs and learning-rate or discount-factor changes are further investigations.
+# ### Change what earns a reward
 #
-# The charts separate base episode reward from shaped episode reward, show all five reward contributions, and track training food collection and public evaluation. The reward totals are undiscounted sums per game. Compare configurations with different reward values through food and collection time.
+# | Suggested run | Change from the reference | Question to investigate |
+# |---|---|---|
+# | No food bonus | Food reward = **0** | How much food does the agent collect when eating has no direct bonus? |
+# | Strong collision penalty | Collision reward = **−100** | Does a larger collision cost reduce collisions or change food collection? |
+# | Reward survival | Move reward = **+0.1** | Does rewarding every move encourage longer games, more food, or both? |
+# | Penalize delay | Move reward = **−0.1** | Does a larger movement cost help the agent collect food sooner? |
+# | Reverse the distance reward | Distance reward = **−1** | What happens when moving away from food earns a positive distance reward? |
+#
+# ### Change how the agent learns
+#
+# | Suggested run | Change from the reference | Question to investigate |
+# |---|---|---|
+# | Shorter training | Training games = **4096** | How much improvement appears with a quarter of the reference budget? |
+# | Shorter reward horizon | γ = **0.9** | How does reducing the weight of later rewards affect the policy? |
+# | Smaller updates | Learning rate = **0.0003** | How do the learning curve and final food score change with smaller updates? |
+# | Larger updates | Learning rate = **0.01** | How do the learning curve and final food score change with larger updates? |
+#
+# Complete **at least three distinct configurations, including the starting agent**. The starting agent, reference and one variation meet this minimum. Explore further questions as time allows, or compare different investigations across groups.
+#
+# Predict the effect before each run. Then inspect the replay, game length, food collection and learning curve. Reward totals are undiscounted sums per game; compare configurations with different reward values using food collected and collection time.
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Choose rewards and settings, then train an experiment { display-mode: "form" }
