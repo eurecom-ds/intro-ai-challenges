@@ -132,12 +132,13 @@ def training_threads(count):
         model._cpu_randomness = original
 
 
-def train(output, name, episodes, seed, *, starting_policy=None, trap=0.0, cpu_threads=1):
+def train(output, name, episodes, seed, *, starting_policy=None, trap=0.0, cpu_threads=1, food_reward_mode="constant"):
     destination = output / f'{name}.json'
     if destination.exists():
         result = json.loads(destination.read_text())
         result['run'].setdefault('cpu_threads', 1)
-        expected = {'episodes': episodes, 'seed': seed, 'trap': trap, 'cpu_threads': cpu_threads,
+        result['run'].setdefault('food_reward_mode', 'constant')
+        expected = {'episodes': episodes, 'seed': seed, 'trap': trap, 'cpu_threads': cpu_threads, 'food_reward_mode': food_reward_mode,
                     'starting_policy_sha256': policy_hash(starting_policy)}
         if result['run'] != expected:
             raise ValueError(f'Existing run settings differ: {destination}')
@@ -154,12 +155,12 @@ def train(output, name, episodes, seed, *, starting_policy=None, trap=0.0, cpu_t
             write_json(output / f'{name}-progress.json', brief)
             last_log[0] = time.monotonic()
     with training_threads(cpu_threads):
-        result = model.train_policy(protocol.settings(episodes=16384), seed=seed,
+        result = model.train_policy(protocol.settings(episodes=16384, food_reward_mode=food_reward_mode), seed=seed,
                                 starting_policy=starting_policy, episode_budget=episodes,
                                 batch_transform=(lambda batch, config: trap_penalty(batch, config, trap)) if trap else None,
                                 evaluation_seed_pairs=pairs(30, 2_000_000), validation_interval=256,
                                 backend='numba', progress=progress)
-    result['run'] = {'episodes': episodes, 'seed': seed, 'trap': trap, 'cpu_threads': cpu_threads,
+    result['run'] = {'episodes': episodes, 'seed': seed, 'trap': trap, 'cpu_threads': cpu_threads, 'food_reward_mode': food_reward_mode,
                      'starting_policy_sha256': policy_hash(starting_policy)}
     write_json(destination, result)
     return result
@@ -172,7 +173,7 @@ def policy_hash(policy):
 
 
 def expert(args):
-    result = train(args.output, 'expert', args.expert_episodes, 42, trap=args.trap, cpu_threads=args.threads)
+    result = train(args.output, 'expert', args.expert_episodes, 42, trap=args.trap, cpu_threads=args.threads, food_reward_mode=args.food_reward_mode)
     rows, _ = rollouts(result['policy'], pairs(1000, 3_000_000))
     verify_rollouts(result['policy'], pairs(30, 3_000_000))
     write_json(args.output / 'expert-evaluation.json', {'score': score(rows), 'games': rows})
@@ -321,7 +322,7 @@ def compare(args):
         arms = {}
         for name, starting in [('random', None), ('imitation', policy)]:
             result = train(args.output, f'{name}-{seed}', args.compare_episodes, seed,
-                           starting_policy=starting, cpu_threads=args.threads)
+                           starting_policy=starting, cpu_threads=args.threads, food_reward_mode=args.food_reward_mode)
             rows, _ = rollouts(result['policy'], evaluation_pairs)
             verify_rollouts(result['policy'], evaluation_pairs[:30])
             arms[name] = {'score': score(rows), 'games': rows,
@@ -347,10 +348,10 @@ def finetune(args):
     verify_rollouts(policy, evaluation_pairs[:30])
     report = {'initial': score(initial), 'initial_games': initial, 'seeds': [],
               'rl_episodes': args.compare_episodes, 'cpu_threads': args.threads,
-              'evaluation_stream': args.evaluation_stream}
+              'evaluation_stream': args.evaluation_stream, 'food_reward_mode': args.food_reward_mode}
     for seed in args.seeds:
         result = train(args.output, f'imitation-{seed}', args.compare_episodes, seed,
-                       starting_policy=policy, cpu_threads=args.threads)
+                       starting_policy=policy, cpu_threads=args.threads, food_reward_mode=args.food_reward_mode)
         rows, _ = rollouts(result['policy'], evaluation_pairs)
         verify_rollouts(result['policy'], evaluation_pairs[:30])
         row = {'seed': seed, 'score': score(rows), 'games': rows,
@@ -376,6 +377,7 @@ def main():
     parser.add_argument('--evaluation-stream', type=int, default=4_000_000,
                         help='Start of a fresh paired evaluation seed range.')
     parser.add_argument('--seeds', type=lambda s: [int(x) for x in s.split(',')], default=[42, 43, 44])
+    parser.add_argument('--food-reward-mode', choices=('constant', 'linear'), default='constant')
     parser.add_argument('--threads', type=int, default=1, help='PyTorch CPU threads during RL training.')
     args = parser.parse_args()
     args.output = args.output.resolve()
@@ -402,6 +404,7 @@ def main():
                             ('model.py', 'environment.py', 'evaluator.py', 'protocol.py', 'numba_environment.py')},
                 'driver_sha256': digest(__file__)}
     metadata['rl_cpu_threads'] = args.threads
+    metadata['food_reward_mode'] = args.food_reward_mode
     write_json(args.output / f'{args.stage}-environment.json', metadata)
     if args.stage == 'finetune':
         finetune(args)

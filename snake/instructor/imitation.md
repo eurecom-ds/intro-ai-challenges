@@ -112,3 +112,12 @@ and optimizers. `--threads` controls PyTorch parallelism during RL; the Numba
 game simulator remains single-threaded. The default is one thread. Thread count
 is part of the cache key, and changing it requires a separate output directory. Floating-point reduction
 order can change between thread counts.
+
+## Compare food reward modes
+
+Use `--food-reward-mode constant` or `--food-reward-mode linear` with the
+training and comparison stages. Constant is the default. Linear multiplies the
+food weight by the apple number within the current game. Keep the food weight,
+training budget, initialization seed, CPU thread count and evaluation games
+fixed when comparing the modes. Use a separate output directory for each mode;
+the mode is included in the cached-run settings.

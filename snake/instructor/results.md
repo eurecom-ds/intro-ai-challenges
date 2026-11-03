@@ -81,3 +81,28 @@ At 256 episodes, RL reduces food collection by 5.145 apples per game. At
 262,144 episodes, it improves food collection by 44.811 apples per game and
 reaches 59.584. These results describe one training seed. The intervals quantify
 variation across paired evaluation games.
+
+## Constant and linear food rewards
+
+Both policies train for 16,384 episodes from the same starting policy, using
+seed 42 and four PyTorch CPU threads. Evaluation uses the same 1,000 games.
+Food weight is 10, collision reward −10, movement reward −0.01, distance reward
+1, learning rate 0.003 and discount 0.999. The food reward mode is the only
+configuration difference. Constant mode awards 10 per apple; linear mode
+awards 10 times the apple number within the game. The starting policy scores
+14.773 apples per game.
+
+| Food reward mode | Apples/game | Moves/game | Collisions | Reached 1,500 moves |
+| --- | ---: | ---: | ---: | ---: |
+| Constant | 40.723 | 1450.419 | 134/1,000 (13.4%) | 866/1,000 (86.6%) |
+| Linear | 27.796 | 1314.703 | 321/1,000 (32.1%) | 679/1,000 (67.9%) |
+
+Linear mode collects 12.927 fewer apples per game. The approximate paired
+95% interval for linear minus constant is [-13.617, -12.237] apples. Linear
+mode also produces shorter games and more collisions in this seed. Both modes
+improve food collection over the starting policy.
+
+These results describe one training seed. The interval quantifies variation
+across evaluation games. For n apples, the undiscounted food component totals
+10n in constant mode and 5n(n+1) in linear mode, so this comparison changes both
+the progression and the total magnitude of food rewards.
