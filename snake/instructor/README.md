@@ -11,9 +11,12 @@ The reference configuration trains for 16,384 episodes with learning rate
 −0.01 and distance-progress reward 1. The starting agent uses the same settings
 for 256 episodes. Both runs initialize the actor from the checked
 `data/starter-policy.npz` artifact and create fresh critics and optimizers.
-Teacher training, demonstration selection and imitation preparation are
-maintained in the private course repository. The public artifact contains
-only the fixed actor parameters.
+Teacher training, demonstration selection and imitation preparation use
+[`warm_start.py`](warm_start.py) in this directory. See the
+[imitation guide](imitation.md) and [experiment report](results-20261103.md).
+Generated teachers, games and evaluation artifacts stay in the repository's
+ignored `_private/` directory. The notebook artifact contains only the fixed
+actor parameters.
 
 ## Public release
 
