@@ -106,3 +106,20 @@ These results describe one training seed. The interval quantifies variation
 across evaluation games. For n apples, the undiscounted food component totals
 10n in constant mode and 5n(n+1) in linear mode, so this comparison changes both
 the progression and the total magnitude of food rewards.
+
+### Comparison at 32,768 episodes
+
+Both food reward modes use the same settings, starting policy, seed 42, four
+CPU threads and 1,000 evaluation games as the 16,384-episode comparison.
+Only the total training budget increases to 32,768 episodes.
+
+| Food reward mode | Apples/game | Gain over 16,384 episodes | Moves/game | Collisions | Reached 1,500 moves |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Constant | 48.848 | +8.125 | 1415.449 | 216/1,000 (21.6%) | 784/1,000 (78.4%) |
+| Linear | 43.118 | +15.322 | 1459.454 | 109/1,000 (10.9%) | 891/1,000 (89.1%) |
+
+Constant rewards retain the higher food score. Linear rewards narrow the gap
+from 12.927 to 5.730 apples per game and produce longer games with fewer
+collisions at this budget. The approximate paired 95% interval for linear
+minus constant is [-6.352, -5.108] apples per game. These results describe
+one training seed; the interval quantifies variation across evaluation games.
