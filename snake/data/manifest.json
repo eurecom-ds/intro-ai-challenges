@@ -28,8 +28,8 @@
     },
     "protocol.py": {
       "path": "protocol.py",
-      "sha256": "3b388aa7d80ea8c2d91950f8bc83b3c86297dbc3d3e928f2e5e5ea4c80a515a0",
-      "size_bytes": 5971
+      "sha256": "19e924ef0610acdc5ebc567ede80597eb9efde2305e22aae53ab7051a7f71a45",
+      "size_bytes": 5988
     },
     "torch_environment.py": {
       "path": "torch_environment.py",
@@ -37,7 +37,7 @@
       "size_bytes": 7426
     }
   },
-  "protocol_fingerprint": "ae19039133722bda3b7a93801721188a453641dbe47fc4300592820b304ab7a2",
+  "protocol_fingerprint": "e6f30ebe998f36bffbbee3258e7cc22bbc0c173c8d86332afe2f407e4ee8721e",
   "public_seed_pairs": [
     [
       630000,
