@@ -44,7 +44,7 @@
 
 # %% [markdown]
 # ## Setup
-# Use a **CPU runtime** in Colab and run the next **three setup cells** in order. Setup downloads the public helpers and a small imitation policy, then checks their release hashes.
+# Use a **CPU runtime** in Colab and run the next **three setup cells** in order. Setup downloads the required files and checks their release hashes.
 # Setup installs Numba if needed. The first training run compiles the simulator; later runs reuse the compiled code.
 #
 # Keep this runtime connected while working. Rerunning Setup 3 clears your experiment table, retained agents and current selection. Your saved submission files remain available.
@@ -670,13 +670,11 @@ watch_untrained()
 #
 # A **policy** assigns probabilities to actions from the current observation. During training, the agent samples an action, receives a reward and continues until the game ends.
 #
-# Your agent starts from a small policy trained by **imitation learning**: it learned to predict actions recorded in successful games. This gives it some navigation experience before your reward experiments. Every experiment reloads those same starting weights.
-#
-# You will improve this policy through reinforcement learning, using rewards from its own games. Short training runs can temporarily lower food collection; compare the initial and final evaluation points in the learning curve.
+# You will train the policy through reinforcement learning, using rewards from its own games. Short training runs can temporarily lower food collection; compare the initial and final evaluation points in the learning curve.
 #
 # **REINFORCE** uses the rewards that follow an action to update its probability. The **discount factor** γ controls how strongly later rewards contribute. A learned **value baseline** estimates the return expected from an observation. The difference between observed return and this estimate tells the update whether the outcome was better or worse than expected.
 #
-# Training collects batches of **32 complete games**, then updates the policy and baseline. Each experiment starts from the same imitation policy and random seeds, with a fresh value network and optimizers. Training retains its final policy.
+# Training collects batches of **32 complete games**, then updates the policy and baseline. Each experiment starts from the same policy weights and random seeds, with a fresh value network and optimizers. Training retains its final policy.
 #
 # The starting configuration trains for **256 games**, with food reward **10**, collision reward **−10**, move reward **−0.01** and distance reward **1**. It uses learning rate **0.003** and γ **0.999**. The longer reference uses the same settings for **16,384 games**.
 
