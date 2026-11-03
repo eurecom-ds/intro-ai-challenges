@@ -16,8 +16,10 @@ what your agent learns. Use a **CPU runtime** in Colab. All controls are supplie
 6. Compare one setting at a time. Predict the behaviour before training, then inspect the replay and public evaluation results.
 7. Select a retained agent from the dropdown and run Upload 2.
 
-The longer reference trains for 16,384 episodes. The controls also offer 4,096,
-8,192, 32,768 and 65,536 episodes. Every run reloads the same imitation policy
+Start investigations with 4,096 episodes (the default), or 8,192 if time allows.
+Keep the episode budget fixed when comparing settings. Rerun promising settings
+with 16,384 episodes, then consider 32,768 or 65,536 for further training.
+Episode counts are total training budgets. Every run reloads the same imitation policy
 and initialization seed, creates a fresh value network and optimizers, and
 retains its final actor. Repeating a configuration
 counts once. Resetting Setup 3 clears the local experiment table and selection.

@@ -6,7 +6,9 @@ at most 1,500 attempted moves. Students choose signed food,
 collision, movement and distance rewards. Public and private evaluation rank
 food collected first and collection speed second.
 
-The reference configuration trains for 16,384 episodes with learning rate
+Initial investigations use 4,096 episodes by default, or 8,192 when time allows.
+Promising settings can then be compared at 16,384 episodes or higher.
+The reference configuration uses learning rate
 0.003, discount 0.999, food reward 10, collision reward −10, movement reward
 −0.01 and distance-progress reward 1. The starting agent uses the same settings
 for 256 episodes. Both runs initialize the actor from the checked

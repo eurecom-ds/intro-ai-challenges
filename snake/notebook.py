@@ -34,7 +34,7 @@
 # |---|---|
 # | 0–8 | Connect a CPU, inspect the game and watch an untrained agent. |
 # | 8–15 | Train the starting agent and prepare Upload 1. |
-# | 15–22 | Compare short and longer training. |
+# | 15–22 | Start exploring with 4,096 or 8,192 games. |
 # | 22–34 | Compare reward goals: food, survival, speed or collision avoidance. |
 # | 34–46 | Investigate learning rate and the discount factor. |
 # | 46–53 | Review behaviours and choose a recorded agent. |
@@ -381,7 +381,7 @@ def watch_untrained():
     render_replay(result["replay"], title="Untrained agent: sampled actions")
 
 
-def run_experiment(episodes=16384, learning_rate=0.003, gamma=0.999, food_reward=10,
+def run_experiment(episodes=4096, learning_rate=0.003, gamma=0.999, food_reward=10,
                    collision_reward=-10, move_reward=-0.01, distance_reward=1):
     global last_result
     try:
@@ -675,7 +675,7 @@ watch_untrained()
 #
 # Training collects batches of **32 complete games**, then updates the policy and baseline. Each experiment starts from the same policy weights and random seeds, with a fresh value network and optimizers. Training retains its final policy.
 #
-# The starting configuration trains for **256 games**, with food reward **10**, collision reward **−10**, move reward **−0.01** and distance reward **1**. It uses learning rate **0.003** and γ **0.999**. The longer reference uses the same settings for **16,384 games**.
+# The starting configuration trains for **256 games**, with food reward **10**, collision reward **−10**, move reward **−0.01** and distance reward **1**. It uses learning rate **0.003** and γ **0.999**. Start your investigations with **4,096 games**, or **8,192** if time allows.
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Train the 256-game starting agent { display-mode: "form" }
@@ -721,7 +721,9 @@ _ = upload_baseline(name, surname, submission_url, access_code)
 #
 # Every reward control accepts positive, zero and negative values. Before changing a value, predict the behaviour it could encourage. Train, watch a preview and compare public food collection.
 #
-# Start with the **reference**: **16,384 games**, learning rate **0.003**, γ **0.999**, food reward **10**, collision reward **−10**, move reward **−0.01** and distance reward **1**. Compare its result with the 256-game starting agent.
+# Start with the **reference**: **4,096 games**, learning rate **0.003**, γ **0.999**, food reward **10**, collision reward **−10**, move reward **−0.01** and distance reward **1**. Compare its result with the 256-game starting agent.
+#
+# Use **4,096 or 8,192 games** for initial comparisons, keeping the same budget across the settings you compare. Once you identify a promising setting, rerun it with **16,384 games**; try **32,768 or 65,536** if time allows. Each run starts from the same supplied policy, so these numbers are total training budgets.
 #
 # Choose a question from either table. Each row changes **one setting from the reference**. Reset the other controls before each run so changes from earlier experiments do not accumulate.
 #
@@ -739,7 +741,7 @@ _ = upload_baseline(name, surname, submission_url, access_code)
 #
 # | Suggested run | Change from the reference | Question to investigate |
 # |---|---|---|
-# | Shorter training | Training games = **4096** | How much improvement appears with a quarter of the reference budget? |
+# | More training | Training games = **8192** | How does doubling the initial budget change food collection? |
 # | Shorter reward horizon | γ = **0.9** | How does reducing the weight of later rewards affect the policy? |
 # | Smaller updates | Learning rate = **0.0003** | How do the learning curve and final food score change with smaller updates? |
 # | Larger updates | Learning rate = **0.01** | How do the learning curve and final food score change with larger updates? |
@@ -750,7 +752,7 @@ _ = upload_baseline(name, surname, submission_url, access_code)
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Choose rewards and settings, then train an experiment { display-mode: "form" }
-episodes = 16384 # @param [256, 4096, 8192, 16384, 32768, 65536] {type:"raw"}
+episodes = 4096 # @param [256, 4096, 8192, 16384, 32768, 65536] {type:"raw"}
 food_reward = 10 # @param {type:"number"}
 collision_reward = -10 # @param {type:"number"}
 move_reward = -0.01 # @param {type:"number"}
