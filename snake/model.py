@@ -87,7 +87,7 @@ def _cpu_randomness(seed):
 
 
 def initial_policy(seed=42):
-    """Return the same near-uniform initialization used for every experiment."""
+    """Return a reproducible near-uniform random actor."""
     with _cpu_randomness(seed):
         return export_policy(PolicyNetwork())
 
@@ -398,15 +398,54 @@ def _check_finite(value, message):
         raise ValueError(message)
 
 
-def train_policy(config=None, progress=None, seed=None, evaluation_seed_pairs=None, backend="reference"):
-    """Train from a fresh initialization and retain the final CPU actor.
+def load_policy(actor, policy):
+    """Copy a validated numeric policy into an existing CPU actor."""
+    validated = evaluator.validate_policy(policy)
+    with torch.no_grad():
+        for layer, values in zip((x for x in actor.layers if isinstance(x, nn.Linear)), validated["layers"]):
+            layer.weight.copy_(torch.as_tensor(values["weight"], dtype=torch.float32))
+            layer.bias.copy_(torch.as_tensor(values["bias"], dtype=torch.float32))
+    return actor
+
+
+def read_policy(path):
+    """Read a compact policy containing only the six float32 parameter arrays."""
+    names = {f"{name}_{index}" for index in range(3) for name in ("weight", "bias")}
+    with np.load(path, allow_pickle=False) as arrays:
+        if set(arrays.files) != names:
+            raise ValueError("The policy archive must contain exactly three weight and bias pairs.")
+        layers = []
+        for index in range(3):
+            layer = {}
+            for name in ("weight", "bias"):
+                values = arrays[f"{name}_{index}"]
+                if values.dtype != np.dtype("float32"):
+                    raise ValueError("The policy archive must use float32 arrays.")
+                layer[name] = values.tolist()
+            layers.append(layer)
+    policy = {"architecture": ARCHITECTURE, "dtype": "float32", "layers": layers}
+    evaluator.validate_policy(policy)
+    return policy
+
+
+def train_policy(config=None, progress=None, seed=None, evaluation_seed_pairs=None, backend="reference",
+                 *, starting_policy=None, episode_budget=None, batch_transform=None,
+                 validation_interval=VALIDATION_BATCH_INTERVAL):
+    """Train a CPU actor, optionally initialized from a numeric policy.
 
     ``seed`` is an instructor-only override. Progress receives immutable numeric
     snapshots after initial validation and every completed training batch.
+    ``episode_budget``, ``batch_transform`` and ``validation_interval`` support
+    instructor experiments. Each call creates fresh optimizers and a critic.
     """
     if not isinstance(backend, str) or backend not in BACKENDS:
         raise ValueError(f"Choose backend from {list(BACKENDS)}.")
     config = protocol.settings(**(config or {}))
+    episodes = config["episodes"] if episode_budget is None else episode_budget
+    if isinstance(episodes, bool) or not isinstance(episodes, int) or episodes <= 0 or episodes % BATCH_EPISODES:
+        raise ValueError("Use a positive episode budget containing complete batches of 32 games.")
+    if isinstance(validation_interval, bool) or not isinstance(validation_interval, int) or validation_interval <= 0:
+        raise ValueError("Use a positive integer validation interval.")
     potential_strength = POTENTIAL_STRENGTH
     training_seed = config.get("seed", 42) if seed is None else seed
     if isinstance(training_seed, bool) or not isinstance(training_seed, int) or not 0 <= training_seed < 2**32:
@@ -428,6 +467,8 @@ def train_policy(config=None, progress=None, seed=None, evaluation_seed_pairs=No
             kernel = get_torch_kernel(backend, BATCH_EPISODES)
             compile_before = kernel.compile_seconds
         actor = PolicyNetwork()
+        if starting_policy is not None:
+            load_policy(actor, starting_policy)
         torch.manual_seed(training_seed ^ 0x5A17)
         baseline = ValueNetwork()
         actor_optimizer = torch.optim.Adam(actor.parameters(), lr=config["learning_rate"])
@@ -440,7 +481,7 @@ def train_policy(config=None, progress=None, seed=None, evaluation_seed_pairs=No
         history.append(initial)
         if progress is not None:
             progress(deepcopy(initial))
-        batch_count = config["episodes"] // BATCH_EPISODES
+        batch_count = episodes // BATCH_EPISODES
         for batch_number in range(1, batch_count + 1):
             if backend == "reference":
                 batch = collect_episodes(actor, config, environment_rng, action_generator)
@@ -450,6 +491,8 @@ def train_policy(config=None, progress=None, seed=None, evaluation_seed_pairs=No
             else:
                 batch = collect_episodes_torch(actor, config, environment_rng, action_generator,
                                                backend=backend, kernel=kernel)
+            if batch_transform is not None:
+                batch = batch_transform(batch, config)
             batch = apply_potential_shaping(batch, config["gamma"], potential_strength)
             x = torch.from_numpy(batch["observations"])
             chosen = torch.from_numpy(batch["actions"])
@@ -481,7 +524,7 @@ def train_policy(config=None, progress=None, seed=None, evaluation_seed_pairs=No
                    "entropy": batch["entropy"], "policy_loss": float(policy_objective.detach()),
                    "value_loss": float(value_objective.detach()), "actor_grad_norm": float(actor_grad_norm),
                    "value_grad_norm": float(value_grad_norm), "seconds": time.perf_counter() - start}
-            if batch_number % VALIDATION_BATCH_INTERVAL == 0 or batch_number == batch_count:
+            if batch_number % validation_interval == 0 or batch_number == batch_count:
                 row["validation"] = evaluator.evaluate(export_policy(actor), evaluation_seed_pairs)
             history.append(row)
             if progress is not None:
@@ -489,7 +532,8 @@ def train_policy(config=None, progress=None, seed=None, evaluation_seed_pairs=No
         final_policy = export_policy(actor)
         evaluator.validate_policy(final_policy)
     return {"config": config, "policy": final_policy, "history": history,
-            "training_seed": training_seed, "training_episodes": config["episodes"],
+            "training_seed": training_seed, "training_episodes": episodes,
+            "initialization": "provided_policy" if starting_policy is not None else "random",
             "training_steps": total_steps, "training_seconds": time.perf_counter() - start,
             "backend": backend, "compile_seconds": (kernel.compile_seconds - compile_before) if kernel else 0.0,
             "potential_strength": potential_strength,

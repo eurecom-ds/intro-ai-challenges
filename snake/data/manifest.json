@@ -1,6 +1,11 @@
 {
   "challenge_version": "snake-v2",
   "files": {
+    "data/starter-policy.npz": {
+      "path": "data/starter-policy.npz",
+      "sha256": "7af548f725a11de482308c86360e43165b39a40a8c02349d51882eaba97534c0",
+      "size_bytes": 180266
+    },
     "environment.py": {
       "path": "environment.py",
       "sha256": "7397bbd70de66f377c564b0a2dabe776206ba7fb5f5465dbcf1adff1b269b2c2",
@@ -13,8 +18,8 @@
     },
     "model.py": {
       "path": "model.py",
-      "sha256": "80b41ebd9586bf8d56a8bcd4c6b42ceeff72848e5bfec21f6ce95eaaef0f91c0",
-      "size_bytes": 24583
+      "sha256": "b690e7990d490fdce6e627e04bb60a338ebcf5fa38d2da0418b7a52145eb4d2e",
+      "size_bytes": 26993
     },
     "numba_environment.py": {
       "path": "numba_environment.py",

@@ -25,7 +25,7 @@ def rehearsal_configurations(episodes):
             ("no_distance", {**reference, "distance_reward": 0.0})]
 
 
-def run_rehearsal(output, episodes=65536, seeds=(42, 43, 44), profiles=None):
+def run_rehearsal(output, episodes=16384, seeds=(42, 43, 44), profiles=None):
     output = Path(output).resolve()
     if Path("/private/tmp") not in output.parents:
         raise ValueError("Keep disposable rehearsal output below /private/tmp.")
@@ -43,6 +43,7 @@ def run_rehearsal(output, episodes=65536, seeds=(42, 43, 44), profiles=None):
     instructor_rng = np.random.default_rng(985311)
     instructor_pairs = [[int(x), int(y)] for x, y in instructor_rng.integers(0, 2**32, (100, 2), dtype=np.uint64)]
     records = []
+    starting_policy = model.read_policy(Path(__file__).resolve().parents[1] / "data/starter-policy.npz")
     for seed in seeds:
         untrained = evaluator.evaluate(model.initial_policy(seed), public_pairs)
         records.append({"profile": "untrained", "seed": seed, "public": untrained})
@@ -50,7 +51,7 @@ def run_rehearsal(output, episodes=65536, seeds=(42, 43, 44), profiles=None):
         for name, config in rehearsal_configurations(episodes):
             if profiles is not None and name not in profiles:
                 continue
-            result = model.train_policy(config, seed=seed)
+            result = model.train_policy(config, seed=seed, starting_policy=starting_policy, backend="numba")
             start = time.perf_counter()
             separate = evaluator.evaluate(result["policy"], instructor_pairs)
             row = {"profile": name, "seed": seed, "config": result["config"],
@@ -69,7 +70,7 @@ def run_rehearsal(output, episodes=65536, seeds=(42, 43, 44), profiles=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--episodes", type=int, default=65536)
+    parser.add_argument("--episodes", type=int, default=16384)
     parser.add_argument("--seeds", default="42,43,44")
     parser.add_argument("--profiles", default="", help="Comma-separated profile names; empty runs all comparisons.")
     args = parser.parse_args()
