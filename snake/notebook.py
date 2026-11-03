@@ -44,7 +44,7 @@
 
 # %% [markdown]
 # ## Setup
-# Use a **CPU runtime** in Colab and run the next **three setup cells** in order. Setup downloads the public helpers automatically and checks their release hashes.
+# Use a **CPU runtime** in Colab and run the next **three setup cells** in order. Setup downloads the public helpers and a small imitation policy, then checks their release hashes.
 # Setup installs Numba if needed. The first training run compiles the simulator; later runs reuse the compiled code.
 #
 # Keep this runtime connected while working. Rerunning Setup 3 clears your experiment table, retained agents and current selection. Your saved submission files remain available.
@@ -78,8 +78,8 @@ import torch
 from IPython.display import display, HTML, FileLink
 
 CHALLENGE_VERSION = "snake-v2"
-RELEASE_REVISION = "39e7ef5f40c9eec0a2214b67aac2046dd2c06819"
-MANIFEST_SHA256 = "20d3d15a6910b183dae0f0290380903846916e633d9acc98ce3741fbdc8623ca"
+RELEASE_REVISION = "15d12198ecfd9deee4d3bf0b9c24483c2f61bd93"
+MANIFEST_SHA256 = "f5e2da04ce5a8cf04f951e6cea300b71dbd5d5f1bd79eb7ba7cd8fd31fcbbe29"
 RELEASE_BASE = f"https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/{RELEASE_REVISION}/snake/"
 ROOT = Path(globals().get("SNAKE_OUTPUT_DIR", Path(tempfile.gettempdir()) / "intro-ai-snake" / "exports"))
 ROOT.mkdir(parents=True, exist_ok=True)
@@ -162,7 +162,7 @@ def load_helper_package(paths):
 manifest_path = checked_file("data/manifest.json", MANIFEST_SHA256)
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 helper_names = {"protocol.py", "environment.py", "evaluator.py", "model.py",
-                "torch_environment.py", "numba_environment.py"}
+                "torch_environment.py", "numba_environment.py", "data/starter-policy.npz"}
 if (manifest.get("challenge_version") != CHALLENGE_VERSION
         or set(manifest.get("files", {})) != helper_names):
     raise ValueError("The public files use another challenge format. Restore the approved release.")
@@ -177,6 +177,7 @@ snake_protocol = helpers["protocol"]
 snake_game = helpers["environment"]
 snake_evaluation = helpers["evaluator"]
 snake_model = helpers["model"]
+starting_policy = snake_model.read_policy(paths["data/starter-policy.npz"])
 protocol_fingerprint = snake_protocol.protocol_fingerprint()
 public_seed_pairs = snake_protocol.public_seed_pairs()
 if (manifest.get("protocol_fingerprint") != protocol_fingerprint
@@ -381,7 +382,7 @@ def watch_untrained():
     render_replay(result["replay"], title="Untrained agent: sampled actions")
 
 
-def run_experiment(episodes=65536, learning_rate=0.003, gamma=0.999, food_reward=10,
+def run_experiment(episodes=16384, learning_rate=0.003, gamma=0.999, food_reward=10,
                    collision_reward=-10, move_reward=-0.01, distance_reward=1):
     global last_result
     try:
@@ -407,7 +408,8 @@ def run_experiment(episodes=65536, learning_rate=0.003, gamma=0.999, food_reward
             if progress_display is not None:
                 progress_display.update(HTML("<p>" + html.escape(message) + "</p>"))
 
-        checkpoint = snake_model.train_policy(config, progress=update, backend="numba")
+        checkpoint = snake_model.train_policy(config, progress=update, backend="numba",
+                                              starting_policy=starting_policy)
         score = checkpoint["validation"]
         if score["episodes"] != 30 or not np.isfinite(score["mean_apples"]):
             raise ValueError("The public evaluation is incomplete. Rerun this experiment.")
@@ -668,11 +670,15 @@ watch_untrained()
 #
 # A **policy** assigns probabilities to actions from the current observation. During training, the agent samples an action, receives a reward and continues until the game ends.
 #
+# Your agent starts from a small policy trained by **imitation learning**: it learned to predict actions recorded in successful games. This gives it some navigation experience before your reward experiments. Every experiment reloads those same starting weights.
+#
+# You will improve this policy through reinforcement learning, using rewards from its own games. Short training runs can temporarily lower food collection; compare the initial and final evaluation points in the learning curve.
+#
 # **REINFORCE** uses the rewards that follow an action to update its probability. The **discount factor** γ controls how strongly later rewards contribute. A learned **value baseline** estimates the return expected from an observation. The difference between observed return and this estimate tells the update whether the outcome was better or worse than expected.
 #
-# Training collects batches of **32 complete games**, then updates the policy and baseline. Each experiment starts from the same initialization and random seeds. Training retains its final policy.
+# Training collects batches of **32 complete games**, then updates the policy and baseline. Each experiment starts from the same imitation policy and random seeds, with a fresh value network and optimizers. Training retains its final policy.
 #
-# The starting configuration trains for **256 games**, with food reward **10**, collision reward **−10**, move reward **−0.01** and distance reward **1**. It uses learning rate **0.003** and γ **0.999**. The longer reference uses the same settings for **65,536 games**.
+# The starting configuration trains for **256 games**, with food reward **10**, collision reward **−10**, move reward **−0.01** and distance reward **1**. It uses learning rate **0.003** and γ **0.999**. The longer reference uses the same settings for **16,384 games**.
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Train the 256-game starting agent { display-mode: "form" }
@@ -729,11 +735,11 @@ _ = upload_baseline(name, surname, submission_url, access_code)
 # | Suggested run | Training games | Food | Collision | Move | Distance | Question |
 # |---|---:|---:|---:|---:|---:|---|
 # | Starting agent | 256 | 10 | −10 | −0.01 | 1 | What does short training achieve? |
-# | Reference | 65536 | 10 | −10 | −0.01 | 1 | What changes with more experience? |
-# | Food | 65536 | 1 | −10 | −0.01 | 1 | How does a smaller food reward change behaviour? |
-# | Collision | 65536 | 10 | 0 | −0.01 | 1 | What happens when collisions have no direct penalty? |
-# | Movement | 65536 | 10 | −10 | +0.1 | 1 | What behaviour earns movement rewards? |
-# | Distance | 65536 | 10 | −10 | −0.01 | 0 | How does learning change when distance progress has zero weight? |
+# | Reference | 16384 | 10 | −10 | −0.01 | 1 | What changes with more experience? |
+# | Food | 16384 | 1 | −10 | −0.01 | 1 | How does a smaller food reward change behaviour? |
+# | Collision | 16384 | 10 | 0 | −0.01 | 1 | What happens when collisions have no direct penalty? |
+# | Movement | 16384 | 10 | −10 | +0.1 | 1 | What behaviour earns movement rewards? |
+# | Distance | 16384 | 10 | −10 | −0.01 | 0 | How does learning change when distance progress has zero weight? |
 #
 # Use learning rate **0.003** and γ **0.999** for these comparisons. Change one setting at a time from the reference configuration. The controls also offer shorter budgets for exploratory runs.
 #
@@ -743,7 +749,7 @@ _ = upload_baseline(name, surname, submission_url, access_code)
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Choose rewards and settings, then train an experiment { display-mode: "form" }
-episodes = 65536 # @param [256, 4096, 8192, 16384, 32768, 65536] {type:"raw"}
+episodes = 16384 # @param [256, 4096, 8192, 16384, 32768, 65536] {type:"raw"}
 food_reward = 10 # @param {type:"number"}
 collision_reward = -10 # @param {type:"number"}
 move_reward = -0.01 # @param {type:"number"}

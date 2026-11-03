@@ -6,10 +6,14 @@ at most 1,500 attempted moves. Students choose signed food,
 collision, movement and distance rewards. Public and private evaluation rank
 food collected first and collection speed second.
 
-The reference configuration trains for 65,536 episodes with learning rate
+The reference configuration trains for 16,384 episodes with learning rate
 0.003, discount 0.999, food reward 10, collision reward −10, movement reward
 −0.01 and distance-progress reward 1. The starting agent uses the same settings
-for 256 episodes.
+for 256 episodes. Both runs initialize the actor from the checked
+`data/starter-policy.npz` artifact and create fresh critics and optimizers.
+Teacher training, demonstration selection and imitation preparation are
+maintained in the private course repository. The public artifact contains
+only the fixed actor parameters.
 
 ## Public release
 
@@ -24,8 +28,8 @@ python snake/instructor/prepare.py public
 
 The public manifest records the challenge version, protocol fingerprint,
 public evaluation seeds and SHA-256 hashes of the required and optional CPU
-helpers. Run the commands with NumPy installed. The protocol fingerprint binds
-the rules, observation order and the three trusted source modules.
+helpers and the starting-policy artifact. Run the commands with NumPy installed.
+The protocol fingerprint binds the rules, observation order and the three trusted source modules.
 
 Commit the prepared helpers and manifest. Pin the notebook's
 `RELEASE_REVISION` to that immutable commit and `MANIFEST_SHA256` to its
@@ -65,7 +69,7 @@ separate instructor games.
 
 ```bash
 uv run --no-project --with numpy --with torch --with numba python snake/instructor/rehearse.py \
-  --output /private/tmp/snake-rehearsal-learning --episodes 65536 --seeds 42,43,44
+  --output /private/tmp/snake-rehearsal-learning --episodes 16384 --seeds 42,43,44
 ```
 
 Record episodes, environment steps, updates, elapsed time, policy entropy,
@@ -89,7 +93,7 @@ retained actor unchanged.
 
 ## Notebook and upload rehearsal
 
-1. Run the three setup cells, inspect the untrained agent and train the baseline.
+1. Run the three setup cells, verify the imitation policy loads, inspect the untrained demonstration agent and train the baseline.
 2. Prepare Upload 1 with a disposable identity and verify its saved JSON.
 3. Record at least three configurations, inspect rewards, learning curves and replays.
 4. Check the configuration dropdown and upload its retained final actor.
@@ -127,7 +131,9 @@ using the public evidence and discuss observations with students.
 The trainer supports `backend="reference"`, `"torch_eager"`, `"torch_compile"`
 and `"numba"`. The notebook selects `backend="numba"` for training. Direct calls
 to `model.train_policy` default to `"reference"`; pass `backend="numba"` to
-reproduce notebook training. All backends preserve the game, policy network,
+reproduce notebook training and provide the starting policy as shown below.
+Direct calls use random actor initialization when `starting_policy` is omitted.
+All backends preserve the game, policy network,
 32-game batches, action sampling and policy-gradient updates. Neural-network
 updates use CPU PyTorch.
 
@@ -165,7 +171,8 @@ package and release-scoped notebook imports remain independent.
 For an individual instructor experiment:
 
 ```python
-checkpoint = model.train_policy(config, backend="numba")
+checkpoint = model.train_policy(config, backend="numba",
+                                starting_policy=model.read_policy("snake/data/starter-policy.npz"))
 print(checkpoint["training_seconds"], checkpoint["compile_seconds"])
 ```
 

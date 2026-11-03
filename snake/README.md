@@ -2,8 +2,8 @@
 
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/eurecom-ds/intro-ai-challenges/blob/main/snake/notebook.ipynb)
 
-Train a Snake agent using policy gradients. In this 60-minute activity, choose
-rewards for food, collisions, movement and progress toward food, then inspect
+Start from a small imitation-trained Snake policy and improve it using policy
+gradients. In this 60-minute activity, choose rewards for food, collisions, movement and progress toward food, then inspect
 what your agent learns. Use a **CPU runtime** in Colab. All controls are supplied.
 
 ## Start the activity
@@ -16,9 +16,10 @@ what your agent learns. Use a **CPU runtime** in Colab. All controls are supplie
 6. Compare one setting at a time. Predict the behaviour before training, then inspect the replay and public evaluation results.
 7. Select a retained agent from the dropdown and run Upload 2.
 
-The longer reference trains for 65,536 episodes. The controls also offer 4,096,
-8,192, 16,384 and 32,768 episodes. Every run starts from the same
-initialization seed and retains its final actor. Repeating a configuration
+The longer reference trains for 16,384 episodes. The controls also offer 4,096,
+8,192, 32,768 and 65,536 episodes. Every run reloads the same imitation policy
+and initialization seed, creates a fresh value network and optimizers, and
+retains its final actor. Repeating a configuration
 counts once. Resetting Setup 3 clears the local experiment table and selection.
 
 ## The game and the policy
@@ -30,7 +31,9 @@ departing tail's cell is legal on a move without growth.
 
 A small multilayer perceptron (MLP), with two 64-unit hidden layers, maps the
 board and game information to probabilities for the three actions. Training
-samples actions from those probabilities.
+samples actions from those probabilities. The supplied starting policy learned
+to predict actions from successful demonstration games through imitation
+learning. Student experiments continue with rewards from their own games.
 REINFORCE uses discounted future rewards to update the policy. A separate
 value network supplies a baseline: the expected future reward from a state.
 Actions with better-than-expected outcomes receive a positive advantage.
@@ -123,7 +126,10 @@ The editable notebook source is `notebook.py`; its unexecuted Colab version is
 `notebook.ipynb`. `environment.py` implements the game, `evaluator.py` supplies
 trusted NumPy policy inference and scoring, `protocol.py` defines versioned
 rules and controls, and `model.py` supplies the CPU trainer. Public helper
-hashes and evaluation seeds are recorded in `data/manifest.json`.
+hashes and evaluation seeds are recorded in `data/manifest.json`. The compact
+`data/starter-policy.npz` stores the six float32 parameter arrays for the shared
+imitation initialization. Setup verifies its hash and loads numeric arrays
+with pickle disabled.
 
 The notebook uses the Numba simulator and tail-connectivity kernel in
 `numba_environment.py`, with CPU PyTorch for neural-network updates. The first
