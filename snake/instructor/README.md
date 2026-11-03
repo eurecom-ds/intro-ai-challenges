@@ -44,6 +44,10 @@ repository README. Keep the source and unexecuted notebook together.
 Changes to game rules, observations, policy interpretation or scoring require
 a new protocol release. Keep previously distributed revisions available.
 
+Changes to allowed training budgets also change the protocol source fingerprint.
+Preserve the existing private evaluation seeds and refresh the server manifest
+with the new fingerprint before publishing the notebook and leaderboard together.
+
 ## Private evaluation assets
 
 Set `SNAKE_PRIVATE_DIR` to a private output directory outside the public

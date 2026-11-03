@@ -78,8 +78,8 @@ import torch
 from IPython.display import display, HTML, FileLink
 
 CHALLENGE_VERSION = "snake-v2"
-RELEASE_REVISION = "15d12198ecfd9deee4d3bf0b9c24483c2f61bd93"
-MANIFEST_SHA256 = "f5e2da04ce5a8cf04f951e6cea300b71dbd5d5f1bd79eb7ba7cd8fd31fcbbe29"
+RELEASE_REVISION = "7872e2ea7cc9e666b4fd69d6fd053419cdb68acd"
+MANIFEST_SHA256 = "40a1e40094d7ef8650d9685d93e21b8847307b0f614031992cb30d0189ad4955"
 RELEASE_BASE = f"https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/{RELEASE_REVISION}/snake/"
 ROOT = Path(globals().get("SNAKE_OUTPUT_DIR", Path(tempfile.gettempdir()) / "intro-ai-snake" / "exports"))
 ROOT.mkdir(parents=True, exist_ok=True)
@@ -675,7 +675,7 @@ watch_untrained()
 #
 # Training collects batches of **32 complete games**, then updates the policy and baseline. Each experiment starts from the same policy weights and random seeds, with a fresh value network and optimizers. Training retains its final policy.
 #
-# The starting configuration trains for **256 games**, with food reward **10**, collision reward **−10**, move reward **−0.01** and distance reward **1**. It uses learning rate **0.003** and γ **0.999**. Start your investigations with **4,096 games**, or **8,192** if time allows.
+# The starting configuration trains for **256 games**, with food reward **10**, collision reward **−10**, move reward **−0.01** and distance reward **1**. It uses learning rate **0.003** and γ **0.999**. After the baseline, try **512**, **1,024** and **2,048 games** to see how learning develops. Use **4,096 or 8,192 games** for broader investigations.
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Train the 256-game starting agent { display-mode: "form" }
@@ -723,6 +723,8 @@ _ = upload_baseline(name, surname, submission_url, access_code)
 #
 # Start with the **reference**: **4,096 games**, learning rate **0.003**, γ **0.999**, food reward **10**, collision reward **−10**, move reward **−0.01** and distance reward **1**. Compare its result with the 256-game starting agent.
 #
+# To inspect early learning, keep the reference rewards and try **256 → 512 → 1,024 → 2,048 → 4,096 games**. Each budget is a separate run from the same starting policy.
+#
 # Use **4,096 or 8,192 games** for initial comparisons, keeping the same budget across the settings you compare. Once you identify a promising setting, rerun it with **16,384 games**; try **32,768 or 65,536** if time allows. Each run starts from the same supplied policy, so these numbers are total training budgets.
 #
 # Choose a question from either table. Each row changes **one setting from the reference**. Reset the other controls before each run so changes from earlier experiments do not accumulate.
@@ -752,7 +754,7 @@ _ = upload_baseline(name, surname, submission_url, access_code)
 
 # %% cellView="form" jupyter={"source_hidden": true}
 # @title Choose rewards and settings, then train an experiment { display-mode: "form" }
-episodes = 4096 # @param [256, 4096, 8192, 16384, 32768, 65536] {type:"raw"}
+episodes = 4096 # @param [256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536] {type:"raw"}
 food_reward = 10 # @param {type:"number"}
 collision_reward = -10 # @param {type:"number"}
 move_reward = -0.01 # @param {type:"number"}
