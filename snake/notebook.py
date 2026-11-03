@@ -315,11 +315,10 @@ def draw_training(record):
     fig, axes = plt.subplots(2, 2, figsize=(10, 6.4), layout="constrained")
     x = [row["episodes"] for row in training]
     axes[0, 0].plot(x, [row["base_training_return"] for row in training], label="Base reward", color="#2563eb")
-    axes[0, 0].plot(x, [row["training_return"] for row in training], label="With shaping", color="#9333ea")
     axes[0, 0].set(title="Episode reward", ylabel="Undiscounted reward per game")
     axes[0, 0].legend(fontsize=8)
     for key, label in (("food", "Food"), ("collision", "Collision"), ("move", "Each move"),
-                       ("distance", "Distance"), ("potential_shaping", "Potential shaping")):
+                       ("distance", "Distance")):
         axes[0, 1].plot(x, [row["reward_components"][key] for row in training], label=label)
     axes[0, 1].set(title="Reward contributions", ylabel="Raw reward per game")
     axes[0, 1].legend(fontsize=8)
