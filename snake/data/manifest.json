@@ -8,8 +8,8 @@
     },
     "environment.py": {
       "path": "environment.py",
-      "sha256": "7397bbd70de66f377c564b0a2dabe776206ba7fb5f5465dbcf1adff1b269b2c2",
-      "size_bytes": 5284
+      "sha256": "1d563c2d4287575f01224bf8542edf9ce5c9cbb9d9daa35f80ba6de92bcd2e1f",
+      "size_bytes": 5792
     },
     "evaluator.py": {
       "path": "evaluator.py",
@@ -18,8 +18,8 @@
     },
     "model.py": {
       "path": "model.py",
-      "sha256": "b690e7990d490fdce6e627e04bb60a338ebcf5fa38d2da0418b7a52145eb4d2e",
-      "size_bytes": 26993
+      "sha256": "3464c7b9693651b8fc1974f5a55f158ab2bfa703b4f7622ca418ea00edd54628",
+      "size_bytes": 27241
     },
     "numba_environment.py": {
       "path": "numba_environment.py",
@@ -28,8 +28,8 @@
     },
     "protocol.py": {
       "path": "protocol.py",
-      "sha256": "19e924ef0610acdc5ebc567ede80597eb9efde2305e22aae53ab7051a7f71a45",
-      "size_bytes": 5988
+      "sha256": "9a6fae128f9545c0deae1b2a5a6f85116b6c2a3a4c94093f9214a6b6f7d37119",
+      "size_bytes": 6206
     },
     "torch_environment.py": {
       "path": "torch_environment.py",
@@ -37,7 +37,7 @@
       "size_bytes": 7426
     }
   },
-  "protocol_fingerprint": "e6f30ebe998f36bffbbee3258e7cc22bbc0c173c8d86332afe2f407e4ee8721e",
+  "protocol_fingerprint": "5ee9c0605c0013c671a1232e7a590649bba1a655ecb91bf8c1f49945ad6c2283",
   "public_seed_pairs": [
     [
       630000,

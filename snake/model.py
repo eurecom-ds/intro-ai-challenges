@@ -137,8 +137,9 @@ def collect_episodes(actor, config, environment_rng, action_generator, count=BAT
                 actions[index].append(int(chosen[row]))
                 state, events, done, reason = environment.step(states[index], int(chosen[row]), rngs[index])
                 states[index] = state
-                rewards[index].append(environment.training_reward(events, config))
-                contributions = (config["food_reward"] * events["food"],
+                apple_number = int(apples[index]) + int(events["food"])
+                rewards[index].append(environment.training_reward(events, config, apples_eaten=apple_number))
+                contributions = (environment.food_reward(events, config, apple_number),
                                  config["collision_reward"] * events["collision"],
                                  config["move_reward"] * events["move"],
                                  config["distance_reward"] * events["distance"])
@@ -294,6 +295,8 @@ def _recorded_batch(config, observations, actions, events, valid, lengths, reaso
     weights = np.asarray([config[name] for name in ("food_reward", "collision_reward",
                                                    "move_reward", "distance_reward")], dtype=np.float64)
     contributions = raw_events * weights
+    if config.get("food_reward_mode", "constant") == "linear":
+        contributions[..., 0] *= np.cumsum(raw_events[..., 0], axis=1)
     rewards = contributions[..., 0] + contributions[..., 1]
     rewards = rewards + contributions[..., 2]
     rewards = rewards + contributions[..., 3]
