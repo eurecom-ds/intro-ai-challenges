@@ -29,7 +29,7 @@ PUBLIC_EPISODES = 30
 PRIVATE_EPISODES = 100
 DEMO_SEED_PAIR = (670_001, 670_002)
 MODEL_FIELDS = frozenset({"episodes", "learning_rate", "gamma", "food_reward",
-                          "collision_reward", "move_reward", "distance_reward", "food_reward_mode", "seed"})
+                          "collision_reward", "move_reward", "distance_reward", "seed"})
 
 
 def _number(value, name):
@@ -46,7 +46,7 @@ def _number(value, name):
 
 def settings(episodes=65536, learning_rate=0.003, gamma=0.999, food_reward=10.0,
              collision_reward=-10.0, move_reward=-0.01, distance_reward=1.0,
-             seed=TRAINING_SEED, *, instructor=False, food_reward_mode="constant"):
+             seed=TRAINING_SEED, *, instructor=False):
     """Validate controls; instructor rehearsals can use another training seed."""
     if isinstance(episodes, (bool, np.bool_)) or not isinstance(episodes, (int, np.integer)) or episodes not in EPISODES:
         raise ValueError(f"Choose episodes from {list(EPISODES)}.")
@@ -60,8 +60,6 @@ def settings(episodes=65536, learning_rate=0.003, gamma=0.999, food_reward=10.0,
         raise ValueError("Set seed to an unsigned 32-bit integer.")
     if not instructor and seed != TRAINING_SEED:
         raise ValueError(f"Classroom comparisons use seed {TRAINING_SEED}.")
-    if food_reward_mode not in ("constant", "linear"):
-        raise ValueError("Choose constant or linear for food_reward_mode.")
     rewards = {}
     for name, value, bound in (("food_reward", food_reward, 100),
                                 ("collision_reward", collision_reward, 100),
@@ -72,7 +70,7 @@ def settings(episodes=65536, learning_rate=0.003, gamma=0.999, food_reward=10.0,
             raise ValueError(f"Set {name} between {-bound} and {bound}.")
         rewards[name] = number
     return {"episodes": int(episodes), "learning_rate": lr, "gamma": discount,
-            **rewards, "food_reward_mode": food_reward_mode, "seed": int(seed)}
+            **rewards, "seed": int(seed)}
 
 
 BASELINE = settings(episodes=256)

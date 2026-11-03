@@ -91,18 +91,8 @@ def step(state, action, rng):
     return State(body, heading, food, moves, reason), events, reason is not None, reason
 
 
-def food_reward(events, settings, apples_eaten=None):
-    """Return the food bonus, optionally scaled by its one-based game count."""
-    multiplier = 1
-    if settings.get("food_reward_mode", "constant") == "linear" and events["food"]:
-        if apples_eaten is None or apples_eaten < 1:
-            raise ValueError("Linear food rewards require the count including this apple.")
-        multiplier = apples_eaten
-    return settings["food_reward"] * events["food"] * multiplier
-
-
-def training_reward(events, settings, *, apples_eaten=None):
-    return (food_reward(events, settings, apples_eaten)
+def training_reward(events, settings):
+    return (settings["food_reward"] * events["food"]
             + settings["collision_reward"] * events["collision"]
             + settings["move_reward"] * events["move"]
             + settings["distance_reward"] * events["distance"])

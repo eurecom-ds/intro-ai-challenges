@@ -78,8 +78,8 @@ import torch
 from IPython.display import display, HTML, FileLink
 
 CHALLENGE_VERSION = "snake-v2"
-RELEASE_REVISION = "b26e1e893f377ca2fd89c03b997a740dfe7d375f"
-MANIFEST_SHA256 = "5f86a5d1ae19a6e561e80a55682769c63378bdd0a529967135f835577a0c4a95"
+RELEASE_REVISION = "7872e2ea7cc9e666b4fd69d6fd053419cdb68acd"
+MANIFEST_SHA256 = "40a1e40094d7ef8650d9685d93e21b8847307b0f614031992cb30d0189ad4955"
 RELEASE_BASE = f"https://raw.githubusercontent.com/eurecom-ds/intro-ai-challenges/{RELEASE_REVISION}/snake/"
 ROOT = Path(globals().get("SNAKE_OUTPUT_DIR", Path(tempfile.gettempdir()) / "intro-ai-snake" / "exports"))
 ROOT.mkdir(parents=True, exist_ok=True)
@@ -240,7 +240,7 @@ def configuration_key(config):
 
 
 def describe_settings(config):
-    return (f"{config['episodes']} games · food={config['food_reward']:g} ({config['food_reward_mode']}) · collision={config['collision_reward']:g} · "
+    return (f"{config['episodes']} games · food={config['food_reward']:g} · collision={config['collision_reward']:g} · "
             f"move={config['move_reward']:g} · distance={config['distance_reward']:g} · "
             f"γ={config['gamma']:g} · lr={config['learning_rate']:g}")
 
@@ -300,11 +300,11 @@ def experiment_table():
     rows = []
     for index, record in enumerate(experiments, 1):
         config, score = record["config"], record["validation"]
-        rows.append((index, config["episodes"], config["food_reward"], config["food_reward_mode"], config["collision_reward"],
+        rows.append((index, config["episodes"], config["food_reward"], config["collision_reward"],
                      config["move_reward"], config["distance_reward"], config["gamma"], config["learning_rate"],
                      f"{score['mean_apples']:.3f}", food_time(score["mean_food_step"]),
                      record["checkpoint"]["training_steps"], f"{record['checkpoint']['training_seconds']:.1f}"))
-    show_table(("Run", "Games", "Food", "Food mode", "Collision", "Move", "Distance", "γ", "Learning rate",
+    show_table(("Run", "Games", "Food", "Collision", "Move", "Distance", "γ", "Learning rate",
                 "Apples/game ↑", "Food move ↓", "Training moves", "Seconds"), rows)
 
 
@@ -382,13 +382,12 @@ def watch_untrained():
 
 
 def run_experiment(episodes=4096, learning_rate=0.003, gamma=0.999, food_reward=10,
-                   collision_reward=-10, move_reward=-0.01, distance_reward=1, food_reward_mode="constant"):
+                   collision_reward=-10, move_reward=-0.01, distance_reward=1):
     global last_result
     try:
         config = snake_protocol.settings(episodes=episodes, learning_rate=learning_rate, gamma=gamma,
                                          food_reward=food_reward, collision_reward=collision_reward,
-                                         move_reward=move_reward, distance_reward=distance_reward,
-                                         food_reward_mode=food_reward_mode)
+                                         move_reward=move_reward, distance_reward=distance_reward)
         key = configuration_key(config)
         existing = next((index for index, record in enumerate(experiments) if configuration_key(record["config"]) == key), None)
         if existing is None and len(experiments) >= 100:
@@ -712,19 +711,17 @@ _ = upload_baseline(name, surname, submission_url, access_code)
 # The base reward after each attempted move is
 #
 # $$
-# r_t^{\mathrm{base}}=w_{\mathrm{food}}m_t I_{\mathrm{food}}+
+# r_t^{\mathrm{base}}=w_{\mathrm{food}}I_{\mathrm{food}}+
 # w_{\mathrm{collision}}I_{\mathrm{collision}}+
 # w_{\mathrm{move}}+
 # w_{\mathrm{distance}}\Delta d_t.
 # $$
 #
-# The **food reward mode** controls $m_t$. In **constant** mode, $m_t=1$, so every apple gives the same food bonus. In **linear** mode, $m_t$ is the number of apples collected in the current game, including this apple. With food reward **1**, the second apple gives **2** and the tenth gives **10**. With food reward **10**, those bonuses are **20** and **100**. The count resets each game and is independent of the move number.
-#
 # The two indicators equal 1 when food is eaten or a collision occurs. The move reward applies on every attempt, including a collision. Distance progress is the decrease in **Manhattan distance**, the number of horizontal and vertical moves to the current food. A move closer gives +1; a move farther gives −1. On an eating move, progress uses the food's old position before replacement food appears. Collision progress is zero.
 #
 # Every reward control accepts positive, zero and negative values. Before changing a value, predict the behaviour it could encourage. Train, watch a preview and compare public food collection.
 #
-# Start with the **reference**: **4,096 games**, learning rate **0.003**, γ **0.999**, food reward **10** in **constant** mode, collision reward **−10**, move reward **−0.01** and distance reward **1**. Compare its result with the 256-game starting agent.
+# Start with the **reference**: **4,096 games**, learning rate **0.003**, γ **0.999**, food reward **10**, collision reward **−10**, move reward **−0.01** and distance reward **1**. Compare its result with the 256-game starting agent.
 #
 # To inspect early learning, keep the reference rewards and try **256 → 512 → 1,024 → 2,048 → 4,096 games**. Each budget is a separate run from the same starting policy.
 #
@@ -736,7 +733,6 @@ _ = upload_baseline(name, surname, submission_url, access_code)
 #
 # | Suggested run | Change from the reference | Question to investigate |
 # |---|---|---|
-# | Increasing apple rewards | Food reward mode = **linear** | How does making later apples worth more affect food collection? |
 # | No food bonus | Food reward = **0** | How much food does the agent collect when eating has no direct bonus? |
 # | Strong collision penalty | Collision reward = **−100** | Does a larger collision cost reduce collisions or change food collection? |
 # | Reward survival | Move reward = **+0.1** | Does rewarding every move encourage longer games, more food, or both? |
@@ -760,13 +756,12 @@ _ = upload_baseline(name, surname, submission_url, access_code)
 # @title Choose rewards and settings, then train an experiment { display-mode: "form" }
 episodes = 4096 # @param [256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536] {type:"raw"}
 food_reward = 10 # @param {type:"number"}
-food_reward_mode = "constant" # @param ["constant", "linear"]
 collision_reward = -10 # @param {type:"number"}
 move_reward = -0.01 # @param {type:"number"}
 distance_reward = 1 # @param {type:"number"}
 learning_rate = 0.003 # @param [0.0001, 0.0003, 0.001, 0.003, 0.01] {type:"raw"}
 gamma = 0.999 # @param [0, 0.5, 0.9, 0.95, 0.99, 0.999, 1] {type:"raw"}
-_ = run_experiment(episodes, learning_rate, gamma, food_reward, collision_reward, move_reward, distance_reward, food_reward_mode=food_reward_mode)
+_ = run_experiment(episodes, learning_rate, gamma, food_reward, collision_reward, move_reward, distance_reward)
 
 # %% [markdown]
 # ## 4. Inspect another game

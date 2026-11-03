@@ -55,12 +55,6 @@ The indicators provide information; all three actions remain available.
 | Each-move reward | −0.01 | −10 to 10 |
 | Distance-progress reward | 1 | −10 to 10 |
 
-Choose **constant** or **linear** food rewards. Constant mode gives the same
-food bonus for every apple. Linear mode multiplies the food reward by the
-apple number within the current game: with weight 1, the second apple gives 2
-and the tenth gives 10. The count resets each game and is independent of the
-move number. The default is constant; evaluation always counts each apple once.
-
 Every attempted move receives the movement reward. An eating move also
 receives the food reward. A collision also receives the collision reward.
 Distance progress uses Manhattan distance: one cell toward the current food
