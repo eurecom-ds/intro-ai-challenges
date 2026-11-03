@@ -5,19 +5,19 @@ sketch evaluator. Run it from the challenge repository. Data preparation and
 manifest commands require NumPy; evaluator training also requires PyTorch.
 
 Keep the source cache and private preparation directory outside the public
-repository. The example below uses disposable local preparation storage.
-Supply `SKETCH_PREPARATION_SEED` from the private release configuration and
-retain its value with the private preparation records.
+repository. Set `SKETCH_CACHE_DIR` and `SKETCH_PRIVATE_DIR` to those storage
+directories before running the commands. Supply `SKETCH_PREPARATION_SEED` from
+the private release configuration.
 
 ```bash
 python sketch-generation/instructor/prepare.py prepare-data \
-  --cache-dir /private/tmp/intro-ai-sketch-generation/sources \
-  --private-dir /private/tmp/intro-ai-sketch-generation/private \
+  --cache-dir "${SKETCH_CACHE_DIR:?Set the source cache directory}" \
+  --private-dir "${SKETCH_PRIVATE_DIR:?Set the private preparation directory}" \
   --public-dir sketch-generation/data \
   --seed "${SKETCH_PREPARATION_SEED:?Set SKETCH_PREPARATION_SEED from private release configuration}"
 
 python sketch-generation/instructor/prepare.py train-evaluator \
-  --private-dir /private/tmp/intro-ai-sketch-generation/private \
+  --private-dir "${SKETCH_PRIVATE_DIR:?Set the private preparation directory}" \
   --public-dir sketch-generation/data \
   --device cpu --epochs 20 \
   --seed "${SKETCH_PREPARATION_SEED:?Set SKETCH_PREPARATION_SEED from private release configuration}"
@@ -53,11 +53,6 @@ Each public data archive contains `images` (`uint8[N,28,28]`) and `labels`
 (`int64[N]`). The public manifest binds their SHA-256 hashes to the dataset
 fingerprint. It also supplies hashes for the evaluator weights and the notebook
 helper modules. Run `manifest` again after changing a helper module.
-
-Private `split_indices.npz` stores each partition's original source indices and
-bitmap SHA-256 hashes. Private `preparation.json` records source-file hashes,
-the preparation seed, filter counts and partition sizes. Preserve these files
-with an instructor backup when preparing the approved release.
 
 ## Frozen evaluator and score
 
@@ -128,7 +123,7 @@ fingerprints and reference archive using the already trained weights:
 
 ```bash
 python sketch-generation/instructor/prepare.py freeze-evaluator \
-  --private-dir /private/tmp/intro-ai-sketch-generation/private \
+  --private-dir "${SKETCH_PRIVATE_DIR:?Set the private preparation directory}" \
   --public-dir sketch-generation/data
 ```
 
@@ -140,12 +135,12 @@ reference artifacts belong in instructor storage.
 
 ## Fresh Colab rehearsal before publication
 
-For a local-file rehearsal, open `sketch-generation/notebook.ipynb` through
+For a rehearsal before publication, open `sketch-generation/notebook.ipynb` through
 Colab's **File → Upload notebook** dialog and select a GPU runtime. In the Files
 panel:
 
-1. Upload `model.py` and `evaluator.py` into `/content`.
-2. Create `/content/data` and upload the approved `manifest.json`, `train.npz`,
+1. Upload `model.py` and `evaluator.py` into the runtime's working directory.
+2. Create a `data` subdirectory and upload the approved `manifest.json`, `train.npz`,
    `validation.npz` and `evaluator.npz` into that folder.
 3. Run the three setup cells. Existing files pass the same pinned checksum
    checks used for release downloads.

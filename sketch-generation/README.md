@@ -132,18 +132,19 @@ when approved data or scoring changes.
 
 The reusable model helper also accepts CPU explicitly for an instructor
 rehearsal. Keep checkpoints and generated rehearsal outputs in a disposable
-private directory:
+private directory. Set `SKETCH_CHECKPOINT_FILE` and `SKETCH_SAMPLES_FILE` to
+the checkpoint and generated-image destinations before running these commands:
 
 ```bash
 python sketch-generation/model.py train \
   --data sketch-generation/data/train.npz \
   --validation sketch-generation/data/validation.npz \
-  --output /private/tmp/sketch-generation-rehearsal/baseline.pt \
+  --output "${SKETCH_CHECKPOINT_FILE:?Set the checkpoint file}" \
   --device cpu --epochs 5 --likelihood binomial
 
 python sketch-generation/model.py sample \
-  --checkpoint /private/tmp/sketch-generation-rehearsal/baseline.pt \
-  --output /private/tmp/sketch-generation-rehearsal/baseline.npy \
+  --checkpoint "${SKETCH_CHECKPOINT_FILE:?Set the checkpoint file}" \
+  --output "${SKETCH_SAMPLES_FILE:?Set the generated-image file}" \
   --device cpu
 ```
 

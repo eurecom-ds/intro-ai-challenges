@@ -4,23 +4,23 @@ This instructor pipeline trains a teacher, saves its best games, and trains a
 small policy to imitate the recorded actions. It then compares continued
 REINFORCE training from imitation and random initialization. The scripts live
 in `snake/instructor/` in this challenge repository. Generated teachers, games
-and evaluations stay in the ignored `_private/` directory.
+and evaluations belong in untracked instructor storage.
 
 ## Run the pipeline
 
 Use an isolated environment with NumPy, PyTorch and Numba. Keep numerical
 libraries on one thread for reproducible timing. Run these commands from the
-challenge repository root:
+challenge repository root. Set `SNAKE_RUN_DIR` to an output directory accepted
+by the CLI before running the pipeline:
 
 ```bash
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
 uv run --no-project --with numpy --with torch --with numba python snake/instructor/warm_start.py all \
-  --output _private/snake-imitation --evaluation-stream 5000000
+  --output "${SNAKE_RUN_DIR:?Set the experiment output directory}" --evaluation-stream 5000000
 ```
 
 The scripts load the helpers from this repository's `snake/` directory.
-Set `SNAKE_HELPER_DIR` to use another checkout. The output records dependency
-versions, source hashes and the scoring protocol fingerprint.
+Set `SNAKE_HELPER_DIR` to use another checkout.
 
 The four stages can also run separately by replacing `all` with `expert`,
 `demos`, `imitate`, or `compare`. Completed RL runs are reused when their
@@ -77,40 +77,31 @@ student RL time separately.
 After a passing comparison, copy `starter-policy.npz` into `snake/data/`,
 add it to the checked release manifest, and pin
 the notebook to the committed helpers and artifact. Keep the teacher and its
-games private. Rehearse loading and continued training locally, then in a fresh
+games private. Rehearse loading and continued training, then in a fresh
 Colab CPU runtime before publication. Publication requires a separate request.
 
-The [2026-11-03 experiment report](results-20261103.md) records both imitation
+The [experiment report](results.md) records both imitation
 variants, the passing starter policy, and their complete comparison scores.
 Generate comparison figures with:
 
 ```bash
-uv run --no-project --with numpy --with matplotlib python snake/instructor/plot_comparison.py _private/snake-imitation
-```
-
-For the dependency versions used in the recorded experiment, run an isolated
-challenge environment with:
-
-```bash
-OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
-uv run --no-project --python 3.12 --with numpy==2.5.4 --with torch==2.15.0 \
-  --with numba==0.68.1 python snake/instructor/warm_start.py all \
-  --output _private/snake-imitation-recorded --evaluation-stream 5000000
+uv run --no-project --with numpy --with matplotlib python snake/instructor/plot_comparison.py "${SNAKE_RUN_DIR:?Set the experiment output directory}"
 ```
 
 ## Imitation-only budget checks
 
 The `finetune` stage trains only from a saved imitation policy. Use a separate
 output directory for each episode budget, containing that policy's
-`imitation.json`. For one initialization seed and four PyTorch CPU threads:
+`imitation.json`. Set `SNAKE_SHORT_RUN_DIR` and `SNAKE_LONG_RUN_DIR` to those
+directories. For one initialization seed and four PyTorch CPU threads:
 
 ```bash
 uv run --no-project --with numpy --with torch --with numba python snake/instructor/warm_start.py finetune \
-  --output _private/snake-budget-256 --compare-episodes 256 \
+  --output "${SNAKE_SHORT_RUN_DIR:?Set the short-run output directory}" --compare-episodes 256 \
   --seeds 42 --threads 4 --evaluation-stream 5000000
 
 uv run --no-project --with numpy --with torch --with numba python snake/instructor/warm_start.py finetune \
-  --output _private/snake-budget-262144 --compare-episodes 262144 \
+  --output "${SNAKE_LONG_RUN_DIR:?Set the long-run output directory}" --compare-episodes 262144 \
   --seeds 42 --threads 4 --evaluation-stream 5000000
 ```
 
@@ -118,7 +109,6 @@ uv run --no-project --with numpy --with torch --with numba python snake/instruct
 games, their paired differences, training moves, elapsed time and CPU thread
 count. Each budget starts from the saved imitation policy with a fresh critic
 and optimizers. `--threads` controls PyTorch parallelism during RL; the Numba
-game simulator remains single-threaded. The default stays at one thread for
-reproducing the original experiments. Thread count is part of the cache key,
-and changing it requires a separate output directory. Floating-point reduction
+game simulator remains single-threaded. The default is one thread. Thread count
+is part of the cache key, and changing it requires a separate output directory. Floating-point reduction
 order can change between thread counts.

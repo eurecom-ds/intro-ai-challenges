@@ -13,19 +13,19 @@ for 256 episodes. Both runs initialize the actor from the checked
 `data/starter-policy.npz` artifact and create fresh critics and optimizers.
 Teacher training, demonstration selection and imitation preparation use
 [`warm_start.py`](warm_start.py) in this directory. See the
-[imitation guide](imitation.md) and [experiment report](results-20261103.md).
-Generated teachers, games and evaluation artifacts stay in the repository's
-ignored `_private/` directory. The notebook artifact contains only the fixed
-actor parameters.
+[imitation guide](imitation.md) and [experiment report](results.md).
+Keep generated teachers, games and evaluation artifacts in untracked instructor
+storage. The notebook artifact contains only the fixed actor parameters.
 
 ## Public release
 
 The simulator, protocol and NumPy evaluator have matching copies in the
 leaderboard repository. After editing a shared helper, update both copies and
-check them before creating new fingerprints:
+check them before creating new fingerprints. Set `SNAKE_LEADERBOARD_ROOT` to
+the leaderboard checkout:
 
 ```bash
-python snake/instructor/prepare.py check --leaderboard-root ../intro-ai-leaderboard
+python snake/instructor/prepare.py check --leaderboard-root "${SNAKE_LEADERBOARD_ROOT:?Set the leaderboard checkout}"
 python snake/instructor/prepare.py public
 ```
 
@@ -44,11 +44,12 @@ a new protocol release. Keep previously distributed revisions available.
 
 ## Private evaluation assets
 
-Create private seeds in a separate directory. For a disposable rehearsal:
+Set `SNAKE_PRIVATE_DIR` to a private output directory outside the public
+activity before creating evaluation seeds:
 
 ```bash
 python snake/instructor/prepare.py private \
-  --private-dir /private/tmp/snake-rehearsal/bucket/challenges/snake
+  --private-dir "${SNAKE_PRIVATE_DIR:?Set the private seed directory}"
 ```
 
 The command creates `private_seeds.json` and `servermanifest.json` with
@@ -68,11 +69,12 @@ Run the reusable trainer and the instructor rehearsal command on CPU. Store
 policies, reports and submitted files in a disposable private directory.
 Measure the baseline, longer training and each reward comparison. Repeat the
 principal comparisons with three initialization seeds and evaluate them on
-separate instructor games.
+separate instructor games. Set `SNAKE_REHEARSAL_DIR` to a disposable output
+directory accepted by the rehearsal command.
 
 ```bash
 uv run --no-project --with numpy --with torch --with numba python snake/instructor/rehearse.py \
-  --output /private/tmp/snake-rehearsal-learning --episodes 16384 --seeds 42,43,44
+  --output "${SNAKE_REHEARSAL_DIR:?Set the rehearsal output directory}" --episodes 16384 --seeds 42,43,44
 ```
 
 Record episodes, environment steps, updates, elapsed time, policy entropy,
@@ -106,20 +108,24 @@ retained actor unchanged.
 8. Save and restore a disposable score snapshot, then verify the reset hook.
 
 Finish with a fresh Colab CPU session. For unpublished helpers, upload the
-local notebook and a verified helper bundle into the runtime:
+notebook and a verified helper bundle into the runtime. Set
+`SNAKE_HELPER_BUNDLE` to the destination ZIP file:
 
 ```bash
-python snake/instructor/prepare.py bundle --output /private/tmp/snake-helpers.zip
+python snake/instructor/prepare.py bundle --output "${SNAKE_HELPER_BUNDLE:?Set the helper ZIP destination}"
 ```
 
 After uploading the ZIP through Colab's Files panel, run this instructor cell
 before the three setup cells:
 
 ```python
+from pathlib import Path
 import zipfile
-with zipfile.ZipFile('/content/snake-helpers.zip') as archive:
-    archive.extractall('/content')
-INSTRUCTOR_HELPER_DIR = '/content/snake-helpers'
+
+bundle = Path(input('Uploaded helper ZIP: ')).expanduser()
+with zipfile.ZipFile(bundle) as archive:
+    archive.extractall(Path.cwd())
+INSTRUCTOR_HELPER_DIR = str(Path.cwd() / 'snake-helpers')
 ```
 
 Setup verifies the same manifest and file hashes. After publication, rehearse
@@ -148,22 +154,23 @@ the training backend.
 
 Run a comparison with a retained instructor actor. The command below measures
 three warm collection repeats, cold compilation and two or three complete
-training runs:
+training runs. Set `SNAKE_BENCHMARK_DIR` to the output directory and
+`SNAKE_POLICY_FILE` to the numeric policy to evaluate:
 
 ```bash
 uv run --no-project --with numpy --with torch --with numba \
   python snake/instructor/benchmark_cpu.py \
-  --output /private/tmp/snake-cpu-benchmark \
-  --policy /private/tmp/instructor-policy.json \
+  --output "${SNAKE_BENCHMARK_DIR:?Set the benchmark output directory}" \
+  --policy "${SNAKE_POLICY_FILE:?Set the numeric policy file}" \
   --batches 16 --repeats 3 --train-episodes 8192 --fresh-cache
 ```
 
 Omit `--policy` to use an untrained actor. For representative long games,
 provide a trained numeric checkpoint. Timing excludes trajectory hashing;
 complete training timing includes collection, updates and public evaluation.
-The JSON report records versions, source hashes, first-call costs, warmed
-throughput and policy parity. Compilation costs should be considered alongside
-the number of experiments in a runtime.
+The JSON report records first-call costs, warmed throughput and policy parity.
+Compilation costs should be considered alongside the number of experiments in
+a runtime.
 
 The PyTorch compiler backend requires a working C++ compiler and OpenMP runtime.
 Numba supplies the default simulator and the tail-connectivity kernel used by
